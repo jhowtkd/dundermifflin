@@ -244,7 +244,7 @@
                                     <span class="material-symbols-outlined text-sm">visibility</span>
                                     <span class="font-display text-[8px]">VER</span>
                                 </button>
-                                <a href="/api/files/${file.path}" download class="win95-button px-2 py-1 flex items-center space-x-1">
+                                <a href="http://100.94.223.52:3003/api/files/${file.path}" download class="win95-button px-2 py-1 flex items-center space-x-1">
                                     <span class="material-symbols-outlined text-sm">download</span>
                                     <span class="font-display text-[8px]">BAIXAR</span>
                                 </a>
@@ -263,7 +263,7 @@
             const title = document.getElementById('preview-title');
 
             title.textContent = path;
-            iframe.src = `/api/files/${path}`;
+            iframe.src = `http://100.94.223.52:3003/api/files/${path}`;
             modal.classList.remove('hidden');
         }
 

@@ -3,7 +3,7 @@
  * Cliente JavaScript para comunicação com a API Flask
  */
 
-const API_BASE = '/api';
+const API_BASE = 'http://100.94.223.52:3003/api';
 
 const API = {
     // ============================================================
