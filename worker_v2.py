@@ -775,34 +775,61 @@ REGRAS:
                 del self.active_sessions[session.session_code]
     
     def _queue_agent_task(self, step: Dict, session: OrchestrationSession) -> str:
-        """Adiciona tarefa do agente na fila"""
+        """Adiciona tarefa do agente na fila com contexto de projeto"""
         agent_slug = step['agent_slug']
         context = session.get_context_for_step(step)
         
         # Gera código único para a tarefa
-        import uuid
         task_code = f"TASK-{uuid.uuid4().hex[:12]}"
+        
+        # Busca informação do projeto (se houver execução plan associada)
+        project_slug = self._get_project_for_session(session.session_id)
         
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         
         cur.execute("""
             INSERT INTO agent_tasks_queue 
-            (task_code, session_id, step_index, agent_slug, task_description, status)
-            VALUES (?, ?, ?, ?, ?, 'pending')
+            (task_code, session_id, step_index, agent_slug, task_description, project_slug, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending')
         """, (
             task_code,
             session.session_id,
             step['step_index'],
             agent_slug,
-            context['objective']
+            context['objective'],
+            project_slug
         ))
         
         conn.commit()
         conn.close()
         
-        logger.info(f"   📥 Tarefa enfileirada: {task_code} ({agent_slug})")
+        logger.info(f"   📥 Tarefa enfileirada: {task_code} ({agent_slug})" + 
+                   (f" [Projeto: {project_slug}]" if project_slug else ""))
         return task_code
+    
+    def _get_project_for_session(self, session_id: int) -> Optional[str]:
+        """Busca projeto associado à sessão de execução"""
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cur = conn.cursor()
+            
+            # Busca plano associado à sessão
+            cur.execute("""
+                SELECT ep.project_slug 
+                FROM orchestration_sessions os
+                JOIN execution_plans ep ON os.execution_plan_id = ep.id
+                WHERE os.id = ?
+            """, (session_id,))
+            
+            row = cur.fetchone()
+            conn.close()
+            
+            return row[0] if row else None
+            
+        except Exception as e:
+            logger.error(f"   ⚠️ Erro ao buscar projeto: {e}")
+            return None
     
     def _wait_for_task_result(self, task_code: str, timeout: int = 300) -> str:
         """Aguarda resultado da tarefa (polling)"""

@@ -1,5 +1,5 @@
 [Unit]
-Description=Dunder Mifflin Agent Queue Consumer V2
+Description=Dunder Mifflin Agent Queue Consumer V3 (Executor)
 After=network.target dunder-mifflin-api.service
 
 [Service]
@@ -8,7 +8,7 @@ User=clawd
 WorkingDirectory=/home/clawd/.openclaw/workspace/projects/dunder-mifflin
 Environment=PYTHONPATH=/home/clawd/.openclaw/workspace/projects/dunder-mifflin
 Environment=PATH=/home/clawd/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/usr/bin/python3 /home/clawd/.openclaw/workspace/projects/dunder-mifflin/agent_queue_consumer_loop_v2.py
+ExecStart=/usr/bin/python3 /home/clawd/.openclaw/workspace/projects/dunder-mifflin/agent_queue_consumer_loop_v3.py
 Restart=always
 RestartSec=10
 
