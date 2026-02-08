@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 # Configuração
-JULES_AGENTS_DIR = "/Users/jhonatan/Downloads/Jules/agents"
+JULES_AGENTS_DIR = Path(__file__).parent / "agents"
 DB_PATH = "dunder_mifflin.db"
 
 # Mapeamento de personas DM para agentes Jules
