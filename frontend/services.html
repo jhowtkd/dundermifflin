@@ -921,12 +921,53 @@
                                     <input type="text" class="form-input" id="svcName" placeholder="Ex: Criar Post LinkedIn">
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Descrição</label>
-                                    <textarea class="form-textarea" id="svcDesc" placeholder="Descreva o que o serviço faz..."></textarea>
+                                    <label class="form-label">Tipo de Execução</label>
+                                    <select class="form-select" id="svcExecutionType" onchange="onExecutionTypeChange()">
+                                        <option value="single">Única (execução única)</option>
+                                        <option value="sequence">Sequencial (vários agents)</option>
+                                        <option value="improvement">Aperfeiçoamento (loop até nota X)</option>
+                                        <option value="variations">Variações (mesmo tema, contextos diferentes)</option>
+                                    </select>
                                 </div>
-                                <div class="form-group">
+                                
+                                <!-- Configuração de Aperfeiçoamento -->
+                                <div id="improvementConfig" class="form-group hidden">
+                                    <label class="form-label">Configuração de Aperfeiçoamento</label>
+                                    <div style="margin-bottom: 8px;">
+                                        <label style="font-size: 11px;">Nota mínima (6-10):</label>
+                                        <input type="number" class="form-input" id="improvementTargetScore" min="6" max="10" value="8" style="width: 60px;">
+                                    </div>
+                                    <div style="margin-bottom: 8px;">
+                                        <label style="font-size: 11px;">Quem avalia:</label>
+                                        <select class="form-select" id="improvementEvaluator">
+                                            <option value="auto">Auto-avaliação (próprio agente)</option>
+                                            <option value="judge">Agente Juiz (quality-assessor)</option>
+                                            <option value="checklist">Critérios objetivos</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 11px;">Máximo de tentativas:</label>
+                                        <input type="number" class="form-input" id="improvementMaxAttempts" min="2" max="5" value="3" style="width: 60px;">
+                                    </div>
+                                </div>
+                                
+                                <!-- Configuração de Variações -->
+                                <div id="variationsConfig" class="form-group hidden">
+                                    <label class="form-label">Configuração de Variações</label>
+                                    <div style="margin-bottom: 8px;">
+                                        <label style="font-size: 11px;">Número de variações:</label>
+                                        <input type="number" class="form-input" id="variationCount" min="2" max="10" value="3" style="width: 60px;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 11px;">Contextos (um por linha, ou deixe em branco para automático):</label>
+                                        <textarea class="form-textarea" id="variationContexts" rows="3" placeholder="Ex: escritório&#10;medicina&#10;indústria&#10;escola"></textarea>
+                                    </div>
+                                </div>
+                                
+                                <!-- Loop simples (antigo) -->
+                                <div id="simpleLoopConfig" class="form-group">
                                     <label class="form-label">
-                                        <input type="checkbox" id="svcLoop"> Habilitar Loop (repetir até qualidade OK)
+                                        <input type="checkbox" id="svcLoop"> Habilitar Loop Simples (repetir até qualidade OK)
                                     </label>
                                 </div>
                             </div>
@@ -1302,7 +1343,7 @@
             const name = document.getElementById('svcName').value;
             const desc = document.getElementById('svcDesc').value;
             const agentsStr = document.getElementById('svcAgents').value;
-            const loop = document.getElementById('svcLoop').checked;
+            const executionType = document.getElementById('svcExecutionType').value;
             
             if (!name || !agentsStr) {
                 alert('Preencha nome e agentes');
@@ -1313,13 +1354,39 @@
                 const agents = JSON.parse(agentsStr);
                 const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                 
+                // Monta configuração baseada no tipo de execução
+                let loopConfig = null;
+                let variationContexts = null;
+                
+                if (executionType === 'improvement') {
+                    loopConfig = {
+                        type: 'improvement',
+                        target_score: parseInt(document.getElementById('improvementTargetScore').value) || 8,
+                        evaluator: document.getElementById('improvementEvaluator').value || 'auto',
+                        max_attempts: parseInt(document.getElementById('improvementMaxAttempts').value) || 3
+                    };
+                } else if (executionType === 'variations') {
+                    const contextsText = document.getElementById('variationContexts').value.trim();
+                    variationContexts = contextsText ? contextsText.split('\n').filter(c => c.trim()) : null;
+                    loopConfig = {
+                        type: 'variations',
+                        count: parseInt(document.getElementById('variationCount').value) || 3,
+                        contexts: variationContexts
+                    };
+                } else if (executionType === 'single' && document.getElementById('svcLoop').checked) {
+                    // Loop simples (legado)
+                    loopConfig = { type: 'simple', enabled: true, max_iterations: 3, until_score: 8 };
+                }
+                
                 await fetch(`${API}/services`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name, slug, description: desc,
+                        execution_type: executionType,
                         agent_sequence: agents,
-                        loop_config: loop ? { enabled: true, max_iterations: 3, until_score: 8 } : null,
+                        loop_config: loopConfig,
+                        variation_contexts: variationContexts,
                         steps: agents.map((a, i) => ({ agent_slug: a, step_name: `Step ${i+1}`, action_type: 'execute' }))
                     })
                 });
@@ -1330,6 +1397,25 @@
                 updateStatus('Serviço criado!');
             } catch (e) {
                 alert('Erro: ' + e.message);
+            }
+        }
+        
+        // Handler para mudança de tipo de execução
+        function onExecutionTypeChange() {
+            const type = document.getElementById('svcExecutionType').value;
+            
+            // Esconde todas as configurações
+            document.getElementById('improvementConfig').classList.add('hidden');
+            document.getElementById('variationsConfig').classList.add('hidden');
+            document.getElementById('simpleLoopConfig').classList.add('hidden');
+            
+            // Mostra a configuração apropriada
+            if (type === 'improvement') {
+                document.getElementById('improvementConfig').classList.remove('hidden');
+            } else if (type === 'variations') {
+                document.getElementById('variationsConfig').classList.remove('hidden');
+            } else if (type === 'single') {
+                document.getElementById('simpleLoopConfig').classList.remove('hidden');
             }
         }
         

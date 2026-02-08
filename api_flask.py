@@ -743,6 +743,8 @@ def create_service():
     icon_emoji = data.get('icon_emoji', '⚙️')
     agent_sequence = json.dumps(data.get('agent_sequence', []))
     loop_config = json.dumps(data.get('loop_config')) if data.get('loop_config') else None
+    execution_type = data.get('execution_type', 'single')
+    variation_contexts = json.dumps(data.get('variation_contexts')) if data.get('variation_contexts') else None
     
     if not name or not slug:
         return jsonify({"error": "name and slug required"}), 400
@@ -753,9 +755,9 @@ def create_service():
     try:
         cur.execute("""
             INSERT INTO services 
-            (service_code, name, slug, description, icon_emoji, agent_sequence, loop_config)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (service_code, name, slug, description, icon_emoji, agent_sequence, loop_config))
+            (service_code, name, slug, description, icon_emoji, agent_sequence, loop_config, execution_type, variation_contexts)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (service_code, name, slug, description, icon_emoji, agent_sequence, loop_config, execution_type, variation_contexts))
         
         service_id = cur.lastrowid
         

@@ -895,8 +895,84 @@ REGRAS:
             aggregated += f"\n--- {out['agent_slug']} ---\n{out['output'][:300]}...\n"
         return aggregated
     
+    def _run_improvement_loop(self, session, plan: Dict, step: Dict, agent_slug: str, target_score: int, max_attempts: int):
+        """Executa loop de aperfeiçoamento até atingir nota alvo"""
+        attempt = 1
+        best_output = None
+        best_score = 0
+        
+        while attempt <= max_attempts:
+            logger.info(f"   🔄 Aperfeiçoamento - Tentativa {attempt}/{max_attempts}")
+            
+            # Executa agente
+            output = self._execute_agent_step(step, session)
+            score = self._evaluate_quality(output)
+            
+            logger.info(f"   📊 Nota: {score}/{target_score}")
+            
+            # Guarda melhor resultado
+            if score > best_score:
+                best_score = score
+                best_output = output
+            
+            # Verifica se atingiu nota alvo
+            if score >= target_score:
+                logger.info(f"   ✅ Nota alvo atingida! ({score} >= {target_score})")
+                return best_output, best_score
+            
+            # Se não atingiu e ainda tem tentativas, continua
+            if attempt < max_attempts:
+                logger.info(f"   📝 Melhorando... (tentativa {attempt + 1})")
+                # Adiciona contexto de melhoria ao step
+                step['context'] = step.get('context', '') + f"\n\n[Melhoria necessária - Tentativa {attempt + 1}]\nResultado anterior nota {score}/10. Melhore focando em:\n- Clareza\n- Completude\n- Qualidade técnica"
+            
+            attempt += 1
+            time.sleep(1)
+        
+        # Retorna melhor resultado mesmo se não atingiu nota alvo
+        logger.info(f"   ⚠️ Máximo de tentativas atingido. Melhor nota: {best_score}")
+        return best_output, best_score
+    
+    def _run_variations_loop(self, session, plan: Dict, step: Dict, agent_slug: str, count: int, contexts: List[str]):
+        """Executa loop de variações - gera N variações do mesmo tema"""
+        variations = []
+        
+        # Se não tiver contextos definidos, gera automaticamente
+        if not contexts:
+            contexts = [f"Contexto {i+1}" for i in range(count)]
+        
+        for i, context in enumerate(contexts[:count], 1):
+            logger.info(f"   🎨 Variação {i}/{count}: {context}")
+            
+            # Cria step modificado com contexto específico
+            variation_step = step.copy()
+            variation_step['context'] = f"[Variação: {context}]\n{step.get('context', '')}"
+            variation_step['title'] = f"{step['title']} ({context})"
+            
+            # Executa agente
+            output = self._execute_agent_step(variation_step, session)
+            score = self._evaluate_quality(output)
+            
+            variations.append({
+                'context': context,
+                'output': output,
+                'score': score
+            })
+            
+            logger.info(f"   ✅ Variação {i} completa (nota: {score})")
+            time.sleep(1)
+        
+        # Agrega todas as variações
+        aggregated = "## VARIAÇÕES GERADAS\n\n"
+        for i, var in enumerate(variations, 1):
+            aggregated += f"\n### Variação {i}: {var['context']}\n"
+            aggregated += f"Nota: {var['score']}/10\n\n"
+            aggregated += var['output'][:500] + "...\n\n"
+        
+        return aggregated, max(v['score'] for v in variations)
+    
     def run_v2(self):
-        """Loop principal V2 - com orquestração"""
+        """Loop principal V2 - com orquestração e suporte a loops"""
         logger.info("🔁 Worker V2 iniciando loop principal")
         logger.info("⏳ Aguardando missões e planos...")
         
