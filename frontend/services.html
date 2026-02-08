@@ -763,10 +763,15 @@
                 gap: 10px;
             }
             
-            /* Form em 1 coluna */
-            .form-row {
-                grid-template-columns: 1fr;
+            /* Form em 1 coluna - row vira coluna */
+            .row {
+                flex-direction: column;
                 gap: 12px;
+            }
+            
+            .col-6 {
+                flex: none;
+                width: 100%;
             }
             
             /* Agentes: lista maior em mobile */
