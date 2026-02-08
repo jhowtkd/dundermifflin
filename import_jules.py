@@ -13,9 +13,10 @@ import sqlite3
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# Configuração
-JULES_AGENTS_DIR = "/Users/jhonatan/Downloads/Jules/agents"
-DB_PATH = "dunder_mifflin.db"
+# Configuração - usa path relativo dentro do repositório
+SCRIPT_DIR = Path(__file__).parent.absolute()
+JULES_AGENTS_DIR = SCRIPT_DIR / "agents"
+DB_PATH = SCRIPT_DIR / "dunder_mifflin.db"
 
 # Mapeamento de personas DM para agentes Jules
 PERSONA_AGENT_MAP = {

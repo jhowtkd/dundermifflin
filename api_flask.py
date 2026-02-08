@@ -19,7 +19,7 @@ CORS(app)
 
 DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
 FILES_BASE = Path.home() / ".openclaw" / "workspace" / "studio" / "projects" / "dunder_mifflin"
-JULES_AGENTS_DIR = Path("/Users/jhonatan/Downloads/Jules/agents")
+JULES_AGENTS_DIR = Path(__file__).parent / "agents"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
