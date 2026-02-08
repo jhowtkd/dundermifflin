@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import json
+import uuid
 import logging
 import random
 import sqlite3
@@ -773,46 +774,85 @@ REGRAS:
             if session.session_code in self.active_sessions:
                 del self.active_sessions[session.session_code]
     
-    def _execute_agent_step(self, step: Dict, session: OrchestrationSession) -> str:
-        """Executa um step específico chamando agente real"""
+    def _queue_agent_task(self, step: Dict, session: OrchestrationSession) -> str:
+        """Adiciona tarefa do agente na fila"""
         agent_slug = step['agent_slug']
         context = session.get_context_for_step(step)
         
-        logger.info(f"   🤖 Chamando agente: {agent_slug}")
+        # Gera código único para a tarefa
+        import uuid
+        task_code = f"TASK-{uuid.uuid4().hex[:12]}"
         
-        try:
-            # Chama o executor de agentes via subprocess
-            import subprocess
-            import json
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        
+        cur.execute("""
+            INSERT INTO agent_tasks_queue 
+            (task_code, session_id, step_index, agent_slug, task_description, status)
+            VALUES (?, ?, ?, ?, ?, 'pending')
+        """, (
+            task_code,
+            session.session_id,
+            step['step_index'],
+            agent_slug,
+            context['objective']
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"   📥 Tarefa enfileirada: {task_code} ({agent_slug})")
+        return task_code
+    
+    def _wait_for_task_result(self, task_code: str, timeout: int = 300) -> str:
+        """Aguarda resultado da tarefa (polling)"""
+        start_time = time.time()
+        check_interval = 2  # segundos
+        
+        logger.info(f"   ⏳ Aguardando resultado de {task_code}...")
+        
+        while time.time() - start_time < timeout:
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
             
-            cmd = [
-                sys.executable,
-                str(Path(__file__).parent / "agent_executor.py"),
-                agent_slug,
-                context['objective']
-            ]
+            cur.execute("""
+                SELECT status, result, error_message 
+                FROM agent_tasks_queue 
+                WHERE task_code = ?
+            """, (task_code,))
+            row = cur.fetchone()
+            conn.close()
             
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minutos timeout
-            )
+            if not row:
+                return f"Erro: Tarefa {task_code} não encontrada"
             
-            if result.returncode == 0:
-                output_data = json.loads(result.stdout)
-                output = output_data.get('output', result.stdout)
-                logger.info(f"   ✅ Agente {agent_slug} completou com sucesso")
-            else:
-                output = f"Erro ao executar agente {agent_slug}: {result.stderr}"
-                logger.error(f"   ❌ Agente {agent_slug} falhou: {result.stderr}")
-                
-        except subprocess.TimeoutExpired:
-            output = f"Timeout ao executar agente {agent_slug}"
-            logger.error(f"   ⏱️ Timeout no agente {agent_slug}")
-        except Exception as e:
-            output = f"Erro ao chamar agente {agent_slug}: {str(e)}"
-            logger.error(f"   ❌ Erro no agente {agent_slug}: {e}")
+            status = row['status']
+            
+            if status == 'completed':
+                result_data = json.loads(row['result'] or '{}')
+                output = result_data.get('output', 'Tarefa completada sem resultado')
+                logger.info(f"   ✅ Tarefa {task_code} completada")
+                return output
+            
+            elif status == 'failed':
+                error = row['error_message'] or 'Erro desconhecido'
+                logger.error(f"   ❌ Tarefa {task_code} falhou: {error}")
+                return f"Erro na execução: {error}"
+            
+            # Ainda pendente ou running, aguarda
+            time.sleep(check_interval)
+        
+        logger.error(f"   ⏱️ Timeout aguardando {task_code}")
+        return f"Timeout: Tarefa não completou em {timeout}s"
+    
+    def _execute_agent_step(self, step: Dict, session: OrchestrationSession) -> str:
+        """Executa um step enfileirando e aguardando resultado"""
+        # 1. Enfileira tarefa
+        task_code = self._queue_agent_task(step, session)
+        
+        # 2. Aguarda resultado
+        output = self._wait_for_task_result(task_code)
         
         return output
     
