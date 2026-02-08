@@ -655,8 +655,27 @@ REGRAS:
         try:
             logger.info(f"▶️ Iniciando plano: {plan['plan_code']}")
             
-            # Cria sessão
-            session = self.master_agent.execute_approved_plan(plan['id'])
+            # Verifica se já existe uma sessão running para esse plano
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, session_code FROM orchestration_sessions 
+                WHERE execution_plan_id = ? AND status = 'running'
+                ORDER BY created_at DESC
+            """, (plan['id'],))
+            row = cur.fetchone()
+            conn.close()
+            
+            if row:
+                # Já existe uma sessão, carrega ela
+                logger.info(f"   📂 Sessão existente encontrada: {row['session_code']}")
+                from orchestrator import OrchestrationSession
+                session = OrchestrationSession.load_by_id(row['id'])
+            else:
+                # Cria nova sessão
+                session = self.master_agent.execute_approved_plan(plan['id'])
+            
             self.active_sessions[session.session_code] = session
             
             # Executa steps
