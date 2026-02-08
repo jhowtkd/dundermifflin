@@ -273,7 +273,7 @@ def get_dashboard_stats():
 def add_event(event_type, title, description=None, payload=None, severity="info", agent_id=None, mission_id=None):
     """Adiciona evento ao log"""
     code = f"EVT-{int(time.time() * 1000):x}"
-    
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("""
@@ -282,6 +282,242 @@ def add_event(event_type, title, description=None, payload=None, severity="info"
     """, (code, event_type, title, description, json.dumps(payload or {}), severity, agent_id, mission_id))
     conn.commit()
     conn.close()
+
+
+# ============================================================
+# NOVAS FUNÇÕES PARA JULES AGENTS
+# ============================================================
+
+def list_departments():
+    """Lista todos os departamentos"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT d.*, COUNT(a.id) as agent_count
+        FROM departments d
+        LEFT JOIN agents a ON a.department = d.slug
+        GROUP BY d.id
+        ORDER BY d.name
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_department(slug):
+    """Busca departamento por slug com seus agentes"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Busca departamento
+    cur.execute("SELECT * FROM departments WHERE slug = ?", (slug,))
+    dept_row = cur.fetchone()
+    if not dept_row:
+        conn.close()
+        return None
+
+    dept = dict(dept_row)
+
+    # Busca agentes do departamento
+    cur.execute("""
+        SELECT id, slug, name, role, avatar_emoji, is_active
+        FROM agents
+        WHERE department = ?
+        ORDER BY priority DESC, name
+    """, (slug,))
+    dept['agents'] = [dict(row) for row in cur.fetchall()]
+
+    conn.close()
+    return dept
+
+
+def list_agents_by_department(department=None):
+    """Lista agentes, opcionalmente filtrado por departamento"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    if department:
+        cur.execute("""
+            SELECT a.*, d.name as department_name, d.emoji as department_emoji
+            FROM agents a
+            LEFT JOIN departments d ON a.department = d.slug
+            WHERE a.department = ?
+            ORDER BY a.priority DESC, a.name
+        """, (department,))
+    else:
+        cur.execute("""
+            SELECT a.*, d.name as department_name, d.emoji as department_emoji
+            FROM agents a
+            LEFT JOIN departments d ON a.department = d.slug
+            ORDER BY a.department, a.priority DESC, a.name
+        """)
+
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_agent_content(slug):
+    """Busca agente com conteúdo completo do arquivo .md"""
+    agent = get_agent_by_slug(slug)
+    if not agent:
+        return None
+
+    # Lê o arquivo .md se existir
+    if agent.get('file_path') and os.path.exists(agent['file_path']):
+        with open(agent['file_path'], 'r', encoding='utf-8') as f:
+            agent['content'] = f.read()
+    else:
+        agent['content'] = None
+
+    return agent
+
+
+def list_personas():
+    """Lista todas as personas com seus agentes mapeados"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT p.*, a.name as agent_name, a.slug as agent_slug, a.department
+        FROM personas p
+        LEFT JOIN agents a ON p.agent_id = a.id
+        ORDER BY p.name
+    """)
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_persona(slug):
+    """Busca persona por slug"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT p.*, a.name as agent_name, a.slug as agent_slug,
+               a.department, a.role as agent_role, a.description as agent_description
+        FROM personas p
+        LEFT JOIN agents a ON p.agent_id = a.id
+        WHERE p.slug = ?
+    """, (slug,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def list_commands(command_type=None):
+    """Lista todos os comandos"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    if command_type:
+        cur.execute("""
+            SELECT * FROM commands WHERE command_type = ? ORDER BY slug
+        """, (command_type,))
+    else:
+        cur.execute("SELECT * FROM commands ORDER BY command_type, slug")
+
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_command(slug):
+    """Busca comando por slug"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM commands WHERE slug = ?", (slug,))
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_events(limit=50):
+    """Lista eventos recentes"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT e.*, a.name as agent_name, m.title as mission_title
+        FROM events e
+        LEFT JOIN agents a ON e.agent_id = a.id
+        LEFT JOIN missions m ON e.mission_id = m.id
+        ORDER BY e.occurred_at DESC
+        LIMIT ?
+    """, (limit,))
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def list_proposals(status=None, limit=50):
+    """Lista propostas"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    if status:
+        cur.execute("""
+            SELECT p.*, a.name as agent_name, a.slug as agent_slug, a.avatar_emoji
+            FROM proposals p
+            JOIN agents a ON p.agent_id = a.id
+            WHERE p.status = ?
+            ORDER BY p.proposed_at DESC
+            LIMIT ?
+        """, (status, limit))
+    else:
+        cur.execute("""
+            SELECT p.*, a.name as agent_name, a.slug as agent_slug, a.avatar_emoji
+            FROM proposals p
+            JOIN agents a ON p.agent_id = a.id
+            ORDER BY p.proposed_at DESC
+            LIMIT ?
+        """, (limit,))
+
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_dashboard_stats_extended():
+    """Retorna estatísticas estendidas do dashboard"""
+    stats = get_dashboard_stats()
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    # Contagens adicionais
+    cur.execute("SELECT COUNT(*) FROM departments")
+    stats["total_departments"] = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM personas")
+    stats["total_personas"] = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM commands")
+    stats["total_commands"] = cur.fetchone()[0]
+
+    # Missões por status
+    cur.execute("SELECT COUNT(*) FROM missions WHERE status = 'approved'")
+    stats["approved_missions"] = cur.fetchone()[0]
+
+    # Agentes por departamento
+    cur.execute("""
+        SELECT department, COUNT(*) as count
+        FROM agents
+        GROUP BY department
+        ORDER BY count DESC
+    """)
+    stats["agents_by_department"] = {row[0]: row[1] for row in cur.fetchall()}
+
+    conn.close()
+    return stats
+
 
 if __name__ == "__main__":
     print("🚀 Dunder Mifflin Database Manager")
