@@ -246,8 +246,14 @@
                         </span>
                     </div>
                     ${mission.description ? `<p class="text-sm text-gray-600 mt-2">${mission.description}</p>` : ''}
-                    <div class="text-[10px] text-gray-400 mt-2 font-mono">
-                        ID: ${mission.mission_code || mission.id}
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="text-[10px] text-gray-400 font-mono">
+                            ID: ${mission.mission_code || mission.id}
+                        </div>
+                        <a href="/mission-detail.html?id=${mission.id}" class="win95-button px-2 py-1 text-[9px] font-display flex items-center space-x-1">
+                            <span class="material-symbols-outlined text-sm">visibility</span>
+                            <span>VER DETALHES</span>
+                        </a>
                     </div>
                 </div>
             `;

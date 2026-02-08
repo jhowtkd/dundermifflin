@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dunder Mifflin - Detalhes da Missão</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&amp;family=Press+Start+2P&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <style type="text/tailwindcss">
+        :root {
+            --win-bg: #c0c0c0;
+            --win-highlight: #ffffff;
+            --win-shadow: #808080;
+            --win-shadow-dark: #404040;
+            --terminal-green: #00FF41;
+        }
+        @layer utilities {
+            .win95-raised {
+                box-shadow: inset 1.5px 1.5px 0px var(--win-highlight),
+                            inset -1.5px -1.5px 0px var(--win-shadow),
+                            1.5px 1.5px 0px var(--win-shadow-dark);
+            }
+            .win95-inset {
+                box-shadow: inset 1.5px 1.5px 0px var(--win-shadow),
+                            inset -1.5px -1.5px 0px var(--win-highlight);
+                background-color: #dfdfdf;
+            }
+            .win95-button {
+                @apply bg-[var(--win-bg)] border-none relative active:translate-y-[1px] active:translate-x-[1px];
+                box-shadow: inset 1.5px 1.5px 0px var(--win-highlight),
+                            inset -1.5px -1.5px 0px var(--win-shadow),
+                            1px 1px 0px 1px #000;
+            }
+            .win95-card {
+                @apply bg-[var(--win-bg)] p-1;
+                box-shadow: inset 1.5px 1.5px 0px var(--win-highlight),
+                            inset -1.5px -1.5px 0px var(--win-shadow),
+                            3px 3px 0px 0px rgba(0,0,0,0.4);
+            }
+            .win95-window-title {
+                background: linear-gradient(90deg, #000080, #1084d0);
+            }
+        }
+        .crt-overlay {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50;
+        }
+        .result-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#00FF41",
+                        "background-light": "#7ea2a2",
+                        "background-dark": "#0D1117",
+                    },
+                    fontFamily: {
+                        display: ['"Press Start 2P"', 'cursive'],
+                        mono: ['"VT323"', 'monospace'],
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-mono text-lg min-h-screen text-gray-900 dark:text-gray-300 relative overflow-x-hidden selection:bg-primary selection:text-black">
+    <div class="crt-overlay"></div>
+
+    <!-- Header -->
+    <header class="win95-raised bg-[var(--win-bg)] dark:bg-black p-1 sticky top-0 z-40 mb-4 mx-1">
+        <div class="max-w-7xl mx-auto flex justify-between items-center px-4 py-1">
+            <div class="flex items-center space-x-3">
+                <a href="/index.html" class="text-2xl select-none hover:opacity-80">🏢</a>
+                <h1 class="font-display text-[10px] md:text-sm text-black dark:text-primary uppercase tracking-tighter">
+                    Dunder Mifflin <span class="hidden sm:inline">- Detalhes da Missão</span>
+                </h1>
+            </div>
+            <div id="api-status" class="flex items-center space-x-2 bg-black/10 px-2 py-1 win95-inset">
+                <div class="w-3 h-3 bg-gray-500 border border-black/20"></div>
+                <span class="text-[10px] font-display text-gray-600">CONNECTING...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 space-y-6 relative z-10">
+        <!-- Navigation -->
+        <div class="flex flex-wrap gap-3 py-2 px-1 border-b-2 border-black/20">
+            <a href="/index.html" class="win95-button px-4 py-2 flex items-center space-x-2">
+                <span class="material-symbols-outlined text-sm">home</span>
+                <span class="font-display text-[9px]">Dashboard</span>
+            </a>
+            <a href="/missions.html" class="win95-button px-4 py-2 flex items-center space-x-2 bg-blue-100">
+                <span class="material-symbols-outlined text-sm text-blue-700">arrow_back</span>
+                <span class="font-display text-[9px] text-blue-900">Voltar às Missões</span>
+            </a>
+        </div>
+
+        <!-- Mission Details Window -->
+        <section class="win95-card" id="mission-detail">
+            <div class="win95-window-title flex justify-between items-center px-2 py-1">
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg">📋</span>
+                    <h2 class="font-display text-[10px] text-white tracking-widest" id="window-title">C:\MISSION\DETAIL.EXE</h2>
+                </div>
+                <div class="flex space-x-1">
+                    <button class="w-5 h-5 bg-[var(--win-bg)] win95-raised flex items-center justify-center text-xs font-bold">_</button>
+                    <button class="w-5 h-5 bg-[var(--win-bg)] win95-raised flex items-center justify-center text-xs font-bold">□</button>
+                    <a href="/missions.html" class="w-5 h-5 bg-[var(--win-bg)] win95-raised flex items-center justify-center text-xs font-bold">X</a>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-black win95-inset m-1 p-6 min-h-[500px]">
+                <!-- Loading State -->
+                <div id="loading" class="text-center py-8">
+                    <div class="text-4xl mb-4">⏳</div>
+                    <div class="font-mono text-gray-500">Carregando detalhes da missão...</div>
+                </div>
+
+                <!-- Error State -->
+                <div id="error" class="hidden text-center py-8">
+                    <div class="text-4xl mb-4">❌</div>
+                    <div class="font-mono text-red-500" id="error-message">Erro ao carregar missão</div>
+                </div>
+
+                <!-- Mission Content -->
+                <div id="mission-content" class="hidden space-y-6">
+                    <!-- Header Info -->
+                    <div class="win95-raised bg-[var(--win-bg)] p-4">
+                        <div class="flex flex-wrap justify-between items-start gap-4">
+                            <div class="flex-1">
+                                <h3 class="font-display text-[14px] text-black mb-2" id="mission-title"></h3>
+                                <div class="flex flex-wrap gap-4 text-[12px] font-mono text-gray-600">
+                                    <span id="mission-code" class="bg-black/10 px-2 py-1"></span>
+                                    <span id="mission-agent"></span>
+                                    <span id="mission-type"></span>
+                                    <span id="mission-date"></span>
+                                </div>
+                            </div>
+                            <span id="mission-status" class="px-4 py-2 text-[10px] font-display text-white"></span>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="win95-raised bg-[var(--win-bg)] p-4">
+                        <h4 class="font-display text-[10px] text-gray-600 mb-2 uppercase">Descrição</h4>
+                        <p id="mission-description" class="text-sm text-gray-800 font-mono"></p>
+                    </div>
+
+                    <!-- Result -->
+                    <div id="result-section" class="hidden win95-raised bg-[var(--win-bg)] p-4">
+                        <h4 class="font-display text-[10px] text-green-700 mb-2 uppercase">📊 Resultado</h4>
+                        <div class="bg-black text-primary p-4 font-mono text-sm result-content win95-inset" id="mission-result"></div>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="error-section" class="hidden win95-raised bg-[var(--win-bg)] p-4">
+                        <h4 class="font-display text-[10px] text-red-600 mb-2 uppercase">❌ Erro</h4>
+                        <div class="bg-red-50 text-red-800 p-4 font-mono text-sm win95-inset" id="mission-error"></div>
+                    </div>
+
+                    <!-- Files Generated -->
+                    <div id="files-section" class="hidden win95-raised bg-[var(--win-bg)] p-4">
+                        <h4 class="font-display text-[10px] text-blue-700 mb-2 uppercase">📁 Arquivos Gerados</h4>
+                        <div id="mission-files" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Metadata -->
+                    <div class="win95-inset bg-gray-100 p-3 text-[11px] font-mono text-gray-600">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <div><strong>Criado:</strong> <span id="meta-created"></span></div>
+                            <div><strong>Iniciado:</strong> <span id="meta-started"></span></div>
+                            <div><strong>Concluído:</strong> <span id="meta-completed"></span></div>
+                            <div><strong>Prioridade:</strong> <span id="meta-priority"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="bg-[var(--win-bg)] flex justify-between items-center text-[10px] font-display text-gray-700 p-1">
+                <div class="win95-inset px-2 flex-1 mr-1 py-0.5" id="status-bar">AGUARDANDO...</div>
+                <div class="win95-inset px-2 w-32 py-0.5 text-center">DETAIL VIEW</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/js/api.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const missionId = urlParams.get('id');
+
+        const statusColors = {
+            'approved': 'bg-blue-500',
+            'running': 'bg-orange-500',
+            'succeeded': 'bg-green-500',
+            'failed': 'bg-red-500',
+            'cancelled': 'bg-gray-500'
+        };
+
+        const statusLabels = {
+            'approved': 'APROVADO',
+            'running': 'RODANDO',
+            'succeeded': 'SUCESSO',
+            'failed': 'FALHOU',
+            'cancelled': 'CANCELADO'
+        };
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatResult(result) {
+            if (!result) return null;
+            try {
+                const parsed = JSON.parse(result);
+                return JSON.stringify(parsed, null, 2);
+            } catch {
+                return result;
+            }
+        }
+
+        async function loadMissionDetails() {
+            if (!missionId) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
+                document.getElementById('error-message').textContent = 'ID da missão não fornecido';
+                document.getElementById('status-bar').textContent = 'ERRO: NO ID';
+                return;
+            }
+
+            try {
+                // Buscar todas as missões e filtrar pelo ID
+                const data = await API.missions();
+                const mission = data.missions.find(m => m.id == missionId || m.mission_code == missionId);
+
+                if (!mission) {
+                    throw new Error('Missão não encontrada');
+                }
+
+                // Hide loading, show content
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('mission-content').classList.remove('hidden');
+
+                // Fill header info
+                document.getElementById('window-title').textContent = `C:\\MISSION\\${mission.mission_code}.EXE`;
+                document.getElementById('mission-title').textContent = mission.title;
+                document.getElementById('mission-code').textContent = mission.mission_code;
+                document.getElementById('mission-agent').innerHTML = `🤖 ${mission.agent_name || 'N/A'}`;
+                document.getElementById('mission-type').innerHTML = `🏷️ ${mission.mission_type || 'general'}`;
+                document.getElementById('mission-date').innerHTML = `📅 ${formatDate(mission.created_at)}`;
+                
+                // Status badge
+                const statusEl = document.getElementById('mission-status');
+                statusEl.textContent = statusLabels[mission.status] || mission.status.toUpperCase();
+                statusEl.className = `px-4 py-2 text-[10px] font-display text-white ${statusColors[mission.status] || 'bg-gray-500'}`;
+
+                // Description
+                document.getElementById('mission-description').textContent = mission.description || 'Sem descrição';
+
+                // Result
+                if (mission.result) {
+                    document.getElementById('result-section').classList.remove('hidden');
+                    document.getElementById('mission-result').textContent = formatResult(mission.result);
+                }
+
+                // Error
+                if (mission.error_message) {
+                    document.getElementById('error-section').classList.remove('hidden');
+                    document.getElementById('mission-error').textContent = mission.error_message;
+                }
+
+                // Metadata
+                document.getElementById('meta-created').textContent = formatDate(mission.created_at);
+                document.getElementById('meta-started').textContent = formatDate(mission.started_at);
+                document.getElementById('meta-completed').textContent = formatDate(mission.completed_at);
+                document.getElementById('meta-priority').textContent = mission.priority || '-';
+
+                document.getElementById('status-bar').textContent = `${mission.mission_code} | ${mission.status.toUpperCase()}`;
+
+            } catch (e) {
+                console.error('Error loading mission:', e);
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('error').classList.remove('hidden');
+                document.getElementById('error-message').textContent = e.message;
+                document.getElementById('status-bar').textContent = 'ERRO AO CARREGAR';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadMissionDetails();
+
+            // Check API status
+            try {
+                const health = await API.health();
+                if (health.status === 'ok') {
+                    document.getElementById('api-status').innerHTML = `
+                        <div class="w-3 h-3 bg-primary animate-pulse border border-black/20"></div>
+                        <span class="text-[10px] font-display text-green-700 dark:text-primary">API ONLINE</span>
+                    `;
+                }
+            } catch (e) {}
+        });
+
+        // Dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+</body>
+</html>
