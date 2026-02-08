@@ -1,0 +1,16 @@
+[Unit]
+Description=Dunder Mifflin Dashboard Web Server
+After=network.target
+
+[Service]
+Type=simple
+User=clawd
+WorkingDirectory=/home/clawd/.openclaw/workspace/projects/dunder-mifflin
+ExecStart=/usr/bin/python3 -m http.server 8888 --bind 0.0.0.0
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

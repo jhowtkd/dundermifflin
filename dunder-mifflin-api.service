@@ -1,0 +1,18 @@
+[Unit]
+Description=Dunder Mifflin API REST (Flask)
+After=network.target
+
+[Service]
+Type=simple
+User=clawd
+WorkingDirectory=/home/clawd/.openclaw/workspace/projects/dunder-mifflin
+Environment=PYTHONUNBUFFERED=1
+Environment=DM_API_PORT=3003
+ExecStart=/home/clawd/.openclaw/workspace/projects/dunder-mifflin/venv/bin/python /home/clawd/.openclaw/workspace/projects/dunder-mifflin/api_flask.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
