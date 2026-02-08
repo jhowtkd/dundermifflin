@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dunder Mifflin - Serviços</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --win-bg: #c0c0c0;
+            --win-highlight: #ffffff;
+            --win-shadow: #808080;
+            --win-dark: #404040;
+            --win-blue: #000080;
+            --win-blue-light: #1084d0;
+            --accent: #22c55e;
+            --warning: #eab308;
+            --error: #ef4444;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #008080;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .mono { font-family: 'VT323', monospace; font-size: 18px; }
+        
+        /* Win95 Window */
+        .window {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .window-title {
+            background: linear-gradient(90deg, var(--win-blue), var(--win-blue-light));
+            color: white;
+            padding: 4px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .window-title h1 {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .window-btn {
+            width: 20px;
+            height: 18px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .window-content {
+            padding: 16px;
+        }
+        
+        /* Menu Bar */
+        .menu-bar {
+            display: flex;
+            gap: 16px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--win-shadow);
+            margin-bottom: 16px;
+        }
+        
+        .menu-item {
+            font-size: 13px;
+            cursor: pointer;
+            padding: 2px 8px;
+        }
+        
+        .menu-item:hover {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        /* Panels */
+        .panel {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            margin-bottom: 16px;
+        }
+        
+        .panel-header {
+            background: var(--win-bg);
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--win-shadow);
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .panel-content {
+            padding: 12px;
+            background: #fff;
+            margin: 4px;
+        }
+        
+        /* Services Grid */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        
+        .service-card {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        
+        .service-card:hover {
+            border-color: var(--win-blue);
+        }
+        
+        .service-card:active {
+            border-color: var(--win-dark) var(--win-highlight) var(--win-highlight) var(--win-dark);
+        }
+        
+        .service-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .service-emoji {
+            font-size: 24px;
+        }
+        
+        .service-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .service-desc {
+            font-size: 12px;
+            color: var(--win-dark);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .service-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--win-shadow);
+        }
+        
+        .service-agents {
+            display: flex;
+            gap: 4px;
+        }
+        
+        /* Agent Selection Interface */
+        .agent-sequence-box {
+            background: #f0f0f0;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            min-height: 60px;
+            padding: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .agent-sequence-empty {
+            color: var(--win-shadow);
+            font-size: 11px;
+            font-style: italic;
+            padding: 8px;
+        }
+        
+        .agent-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            font-size: 12px;
+            cursor: move;
+        }
+        
+        .agent-chip .remove-btn {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 10px;
+            background: var(--win-bg);
+            border: 1px solid var(--win-shadow);
+            margin-left: 4px;
+        }
+        
+        .agent-chip .remove-btn:hover {
+            background: var(--error);
+            color: white;
+        }
+        
+        .agent-chip .move-btn {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 10px;
+            background: var(--win-bg);
+            border: 1px solid var(--win-shadow);
+            margin-left: 2px;
+            padding: 0;
+        }
+        
+        .agent-chip .move-btn:hover {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        .agent-chip .order-num {
+            font-size: 10px;
+            color: var(--win-blue);
+            font-weight: bold;
+            margin-right: 4px;
+        }
+        
+        .agent-list-label {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--win-dark);
+        }
+        
+        .agent-list {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        
+        .agent-list-loading {
+            padding: 8px;
+            font-size: 12px;
+            color: var(--win-shadow);
+            text-align: center;
+        }
+        
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            border-bottom: 1px dotted #ccc;
+        }
+        
+        .agent-item:hover {
+            background: #e0e8ff;
+        }
+        
+        .agent-item.selected {
+            background: #c6d4ff;
+            opacity: 0.5;
+        }
+        
+        .agent-item .agent-emoji {
+            font-size: 16px;
+        }
+        
+        .agent-item .agent-info {
+            flex: 1;
+        }
+        
+        .agent-item .agent-name {
+            font-weight: 600;
+        }
+        
+        .agent-item .agent-role {
+            font-size: 10px;
+            color: var(--win-shadow);
+        }
+        
+        .agent-item .add-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .agent-item .add-btn:hover {
+            background: var(--accent);
+        }
+        
+        .agent-item.selected .add-btn {
+            display: none;
+        }
+        
+        /* Star Rating */
+        .star-rating {
+            display: flex;
+            gap: 4px;
+            font-size: 24px;
+        }
+        
+        .star-rating .star {
+            cursor: pointer;
+            color: #ccc;
+            transition: color 0.2s;
+        }
+        
+        .star-rating .star:hover,
+        .star-rating .star.active {
+            color: #ffc107;
+        }
+        
+        /* Feedback Items */
+        .feedback-item {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .feedback-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+        
+        .feedback-user {
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .feedback-meta {
+            font-size: 11px;
+            color: var(--win-shadow);
+        }
+        
+        .feedback-rating {
+            color: #ffc107;
+            font-size: 14px;
+        }
+        
+        .feedback-content {
+            font-size: 12px;
+            line-height: 1.5;
+            margin: 8px 0;
+        }
+        
+        .feedback-tags {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        
+        .feedback-tag {
+            padding: 2px 8px;
+            background: var(--win-bg);
+            border: 1px solid var(--win-shadow);
+            font-size: 10px;
+        }
+        
+        .feedback-response {
+            margin-top: 12px;
+            padding: 8px;
+            background: #f0f8ff;
+            border-left: 3px solid var(--win-blue);
+            font-size: 12px;
+        }
+        
+        .feedback-response-label {
+            font-weight: 600;
+            color: var(--win-blue);
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        
+        /* Plan Card */
+        .plan-card {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .plan-card.pending {
+            border-left: 4px solid var(--warning);
+        }
+        
+        .plan-card.approved {
+            border-left: 4px solid var(--accent);
+        }
+        
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+        
+        .plan-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .plan-code {
+            font-size: 11px;
+            color: var(--win-shadow);
+        }
+        
+        .plan-status {
+            font-size: 10px;
+            padding: 2px 8px;
+            background: var(--win-bg);
+            border: 1px solid var(--win-shadow);
+        }
+        
+        .plan-strategy {
+            font-size: 12px;
+            color: var(--win-dark);
+            margin: 8px 0;
+            line-height: 1.5;
+            font-style: italic;
+        }
+        
+        .plan-steps {
+            margin: 12px 0;
+        }
+        
+        .plan-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px dotted var(--win-shadow);
+            font-size: 12px;
+        }
+        
+        .step-number {
+            width: 20px;
+            height: 20px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 6px 16px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn:active {
+            border-color: var(--win-dark) var(--win-highlight) var(--win-highlight) var(--win-dark);
+        }
+        
+        .btn-primary {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--accent);
+            color: #000;
+        }
+        
+        .btn-danger {
+            background: var(--error);
+            color: #fff;
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            font-family: inherit;
+            font-size: 13px;
+        }
+        
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        /* Layout */
+        .row {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .col-6 {
+            flex: 1;
+        }
+        
+        /* Execution Panel */
+        .execution-log {
+            background: #000;
+            color: #0f0;
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+        
+        .log-entry {
+            margin-bottom: 4px;
+        }
+        
+        .log-time {
+            color: #888;
+        }
+        
+        .log-master {
+            color: #ff0;
+        }
+        
+        .log-agent {
+            color: #0ff;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            height: 24px;
+            margin: 12px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--win-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            transition: width 0.3s;
+        }
+        
+        /* Navigation */
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--win-shadow);
+        }
+        
+        .nav-tab {
+            padding: 6px 16px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .nav-tab.active {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        /* Hide/Show */
+        .hidden { display: none !important; }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--win-shadow);
+        }
+        
+        /* Empty State */
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--win-shadow);
+            font-size: 13px;
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            background: var(--win-bg);
+            border-top: 1px solid var(--win-highlight);
+            padding: 4px 8px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <!-- Title Bar -->
+        <div class="window-title">
+            <h1>🏢 DUNDER MIFFLIN - SERVIÇOS</h1>
+            <div class="window-controls">
+                <button class="window-btn">_</button>
+                <button class="window-btn">□</button>
+                <button class="window-btn" onclick="window.close()">×</button>
+            </div>
+        </div>
+        
+        <!-- Menu Bar -->
+        <div class="window-content">
+            <div class="menu-bar">
+                <span class="menu-item" onclick="showTab('services')">Serviços</span>
+                <span class="menu-item" onclick="showTab('plans')">Planos</span>
+                <span class="menu-item" onclick="showTab('execution')">Execução</span>
+                <span class="menu-item" onclick="showTab('feedback')">Feedback</span>
+                <span class="menu-item" onclick="window.location.href='index.html'">Dashboard</span>
+            </div>
+            
+            <!-- TAB: SERVIÇOS -->
+            <div id="tab-services">
+                <!-- Criar Novo Serviço -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>➕</span> Criar Novo Serviço
+                    </div>
+                    <div class="panel-content">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="form-label">Nome do Serviço</label>
+                                    <input type="text" class="form-input" id="svcName" placeholder="Ex: Criar Post LinkedIn">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Descrição</label>
+                                    <textarea class="form-textarea" id="svcDesc" placeholder="Descreva o que o serviço faz..."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <input type="checkbox" id="svcLoop"> Habilitar Loop (repetir até qualidade OK)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="form-label">Sequência de Agentes</label>
+                                    
+                                    <!-- Sequência Selecionada -->
+                                    <div class="agent-sequence-box" id="selectedAgents">
+                                        <div class="agent-sequence-empty">Clique nos agentes abaixo para adicionar à sequência</div>
+                                    </div>
+                                    
+                                    <!-- Lista de Agentes Disponíveis -->
+                                    <div class="agent-list-label">Agentes disponíveis:</div>
+                                    <div class="agent-list" id="availableAgents">
+                                        <div class="agent-list-loading">Carregando agentes...</div>
+                                    </div>
+                                    
+                                    <!-- Input hidden para armazenar JSON -->
+                                    <input type="hidden" id="svcAgents" value="[]">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="createService()">
+                            💾 Salvar Serviço
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Serviços Disponíveis -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>⚙️</span> Serviços Disponíveis
+                    </div>
+                    <div class="panel-content">
+                        <div id="servicesList" class="services-grid">
+                            <div class="loading">Carregando serviços...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB: PLANOS -->
+            <div id="tab-plans" class="hidden">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📋</span> Planos Pendentes de Aprovação
+                    </div>
+                    <div class="panel-content">
+                        <div id="pendingPlans">
+                            <div class="loading">Carregando planos...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>✅</span> Planos Aprovados / Em Execução
+                    </div>
+                    <div class="panel-content">
+                        <div id="approvedPlans">
+                            <div class="empty">Nenhum plano aprovado ainda</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB: EXECUÇÃO -->
+            <div id="tab-execution" class="hidden">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>▶️</span> Execução em Tempo Real
+                    </div>
+                    <div class="panel-content">
+                        <div id="executionPanel">
+                            <div class="empty">Selecione uma execução na aba Planos</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB: FEEDBACK -->
+            <div id="tab-feedback" class="hidden">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>💬</span> Enviar Feedback
+                    </div>
+                    <div class="panel-content">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="form-label">Tipo de Feedback</label>
+                                    <select class="form-select" id="fbType" onchange="onFeedbackTypeChange()">
+                                        <option value="general">Geral</option>
+                                        <option value="plan">Sobre um Plano</option>
+                                        <option value="execution">Sobre uma Execução</option>
+                                        <option value="agent">Sobre um Agente</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="fbPlanGroup" style="display:none;">
+                                    <label class="form-label">Plano</label>
+                                    <select class="form-select" id="fbPlan">
+                                        <option value="">Selecione um plano...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="fbAgentGroup" style="display:none;">
+                                    <label class="form-label">Agente</label>
+                                    <select class="form-select" id="fbAgent">
+                                        <option value="">Selecione um agente...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Avaliação (1-5 estrelas)</label>
+                                    <div class="star-rating" id="fbRating">
+                                        <span class="star" data-rating="1">★</span>
+                                        <span class="star" data-rating="2">★</span>
+                                        <span class="star" data-rating="3">★</span>
+                                        <span class="star" data-rating="4">★</span>
+                                        <span class="star" data-rating="5">★</span>
+                                    </div>
+                                    <input type="hidden" id="fbRatingValue" value="">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="form-label">Seu Nome (opcional)</label>
+                                    <input type="text" class="form-input" id="fbUserName" placeholder="Seu nome">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Feedback</label>
+                                    <textarea class="form-textarea" id="fbContent" rows="5" placeholder="Descreva sua experiência, sugestões ou problemas..."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tags (separe por vírgula)</label>
+                                    <input type="text" class="form-input" id="fbTags" placeholder="ex: bug, sugestão, elogio">
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="submitFeedback()">
+                            📤 Enviar Feedback
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-header">
+                        <span>📊</span> Feedbacks Recentes
+                    </div>
+                    <div class="panel-content">
+                        <div id="feedbackList">
+                            <div class="loading">Carregando feedbacks...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span id="statusText">Pronto</span>
+                <span id="statusTime"></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Criar Plano -->
+    <div id="newPlanModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div class="window" style="width:500px; margin:0;">
+            <div class="window-title">
+                <h1>📋 Criar Novo Plano</h1>
+                <div class="window-controls">
+                    <button class="window-btn" onclick="closePlanModal()">×</button>
+                </div>
+            </div>
+            <div class="window-content">
+                <input type="hidden" id="planServiceId">
+                <div class="form-group">
+                    <label class="form-label">Serviço</label>
+                    <input type="text" class="form-input" id="planServiceName" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Título / Objetivo</label>
+                    <input type="text" class="form-input" id="planTitle" placeholder="Ex: Post sobre Inteligência Artificial">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Descrição / Requisitos</label>
+                    <textarea class="form-textarea" id="planObjective" placeholder="Descreva detalhadamente o que você precisa..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Dados de Entrada (JSON opcional)</label>
+                    <textarea class="form-textarea mono" id="planInput">{"tema": "", "tom": "profissional"}</textarea>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="btn" onclick="closePlanModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="submitPlan()">Criar Plano</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API = '/api';
+        let services = [];
+        let plans = [];
+        let currentTab = 'services';
+        
+        // Tab Navigation
+        function showTab(tab) {
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            currentTab = tab;
+            
+            if (tab === 'services') loadServices();
+            if (tab === 'plans') loadPlans();
+            if (tab === 'execution') loadExecution();
+        }
+        
+        // Agent Selection State
+        let availableAgents = [];
+        let selectedAgents = [];
+        
+        // Load Available Agents for Selection
+        async function loadAvailableAgents() {
+            try {
+                const res = await fetch(`${API}/agents`);
+                const data = await res.json();
+                availableAgents = data.agents || [];
+                renderAgentList();
+            } catch (e) {
+                console.error('Erro ao carregar agentes:', e);
+                document.getElementById('availableAgents').innerHTML = 
+                    '<div class="agent-list-loading">Erro ao carregar agentes</div>';
+            }
+        }
+        
+        // Render Agent List
+        function renderAgentList() {
+            const container = document.getElementById('availableAgents');
+            if (availableAgents.length === 0) {
+                container.innerHTML = '<div class="agent-list-loading">Nenhum agente disponível</div>';
+                return;
+            }
+            
+            container.innerHTML = availableAgents.map(agent => {
+                const isSelected = selectedAgents.find(a => a.slug === agent.slug);
+                return `
+                    <div class="agent-item ${isSelected ? 'selected' : ''}" data-slug="${agent.slug}">
+                        <span class="agent-emoji">${agent.avatar_emoji || '🤖'}</span>
+                        <div class="agent-info">
+                            <div class="agent-name">${agent.name}</div>
+                            <div class="agent-role">${agent.role || agent.slug}</div>
+                        </div>
+                        <button class="add-btn" onclick="addAgentToSequence('${agent.slug}')" title="Adicionar à sequência">+</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Add Agent to Sequence
+        function addAgentToSequence(slug) {
+            const agent = availableAgents.find(a => a.slug === slug);
+            if (!agent) return;
+            
+            // Check if already in sequence
+            if (selectedAgents.find(a => a.slug === slug)) return;
+            
+            selectedAgents.push(agent);
+            renderSelectedAgents();
+            renderAgentList(); // Refresh to show selected state
+            updateAgentsInput();
+        }
+        
+        // Remove Agent from Sequence
+        function removeAgentFromSequence(index) {
+            selectedAgents.splice(index, 1);
+            renderSelectedAgents();
+            renderAgentList();
+            updateAgentsInput();
+        }
+        
+        // Move Agent in Sequence
+        function moveAgent(index, direction) {
+            if (direction === 'up' && index > 0) {
+                [selectedAgents[index], selectedAgents[index - 1]] = [selectedAgents[index - 1], selectedAgents[index]];
+            } else if (direction === 'down' && index < selectedAgents.length - 1) {
+                [selectedAgents[index], selectedAgents[index + 1]] = [selectedAgents[index + 1], selectedAgents[index]];
+            }
+            renderSelectedAgents();
+            updateAgentsInput();
+        }
+        
+        // Render Selected Agents
+        function renderSelectedAgents() {
+            const container = document.getElementById('selectedAgents');
+            
+            if (selectedAgents.length === 0) {
+                container.innerHTML = '<div class="agent-sequence-empty">Clique nos agentes abaixo para adicionar à sequência</div>';
+                return;
+            }
+            
+            container.innerHTML = selectedAgents.map((agent, index) => `
+                <div class="agent-chip" draggable="true" data-index="${index}">
+                    <span class="order-num">${index + 1}</span>
+                    <span>${agent.avatar_emoji || '🤖'}</span>
+                    <span>${agent.name}</span>
+                    ${index > 0 ? `<button class="move-btn" onclick="moveAgent(${index}, 'up')" title="Mover para cima">↑</button>` : ''}
+                    ${index < selectedAgents.length - 1 ? `<button class="move-btn" onclick="moveAgent(${index}, 'down')" title="Mover para baixo">↓</button>` : ''}
+                    <button class="remove-btn" onclick="removeAgentFromSequence(${index})" title="Remover">×</button>
+                </div>
+            `).join('');
+        }
+        
+        // Update Hidden Input with JSON
+        function updateAgentsInput() {
+            const slugs = selectedAgents.map(a => a.slug);
+            document.getElementById('svcAgents').value = JSON.stringify(slugs);
+        }
+        
+        // Load Services
+        async function loadServices() {
+            try {
+                const res = await fetch(`${API}/services`);
+                const data = await res.json();
+                services = data.services || [];
+                
+                const container = document.getElementById('servicesList');
+                if (services.length === 0) {
+                    container.innerHTML = '<div class="empty">Nenhum serviço criado</div>';
+                    return;
+                }
+                
+                container.innerHTML = services.map(svc => `
+                    <div class="service-card" onclick="openPlanModal(${svc.id}, '${svc.name}')">
+                        <div class="service-header">
+                            <span class="service-emoji">${svc.icon_emoji}</span>
+                            <span class="service-name">${svc.name}</span>
+                        </div>
+                        <div class="service-desc">${svc.description || 'Sem descrição'}</div>
+                        <div class="service-meta">
+                            <span class="service-agents">
+                                ${svc.agent_sequence.map(a => `🤖 ${a}`).join(' → ')}
+                            </span>
+                            ${svc.loop_config?.enabled ? '<span>🔄 Loop</span>' : ''}
+                        </div>
+                    </div>
+                `).join('');
+                
+                updateStatus(`${services.length} serviços carregados`);
+            } catch (e) {
+                document.getElementById('servicesList').innerHTML = `<div class="empty">Erro: ${e.message}</div>`;
+            }
+        }
+        
+        // Create Service
+        async function createService() {
+            const name = document.getElementById('svcName').value;
+            const desc = document.getElementById('svcDesc').value;
+            const agentsStr = document.getElementById('svcAgents').value;
+            const loop = document.getElementById('svcLoop').checked;
+            
+            if (!name || !agentsStr) {
+                alert('Preencha nome e agentes');
+                return;
+            }
+            
+            try {
+                const agents = JSON.parse(agentsStr);
+                const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                
+                await fetch(`${API}/services`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name, slug, description: desc,
+                        agent_sequence: agents,
+                        loop_config: loop ? { enabled: true, max_iterations: 3, until_score: 8 } : null,
+                        steps: agents.map((a, i) => ({ agent_slug: a, step_name: `Step ${i+1}`, action_type: 'execute' }))
+                    })
+                });
+                
+                document.getElementById('svcName').value = '';
+                document.getElementById('svcDesc').value = '';
+                loadServices();
+                updateStatus('Serviço criado!');
+            } catch (e) {
+                alert('Erro: ' + e.message);
+            }
+        }
+        
+        // Plan Modal
+        function openPlanModal(serviceId, serviceName) {
+            document.getElementById('planServiceId').value = serviceId;
+            document.getElementById('planServiceName').value = serviceName;
+            document.getElementById('newPlanModal').style.display = 'flex';
+        }
+        
+        function closePlanModal() {
+            document.getElementById('newPlanModal').style.display = 'none';
+        }
+        
+        async function submitPlan() {
+            const serviceId = document.getElementById('planServiceId').value;
+            const title = document.getElementById('planTitle').value;
+            const objective = document.getElementById('planObjective').value;
+            const inputStr = document.getElementById('planInput').value;
+            
+            if (!title || !objective) {
+                alert('Preencha título e objetivo');
+                return;
+            }
+            
+            try {
+                const inputData = JSON.parse(inputStr || '{}');
+                
+                const res = await fetch(`${API}/plans`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        service_id: parseInt(serviceId),
+                        title,
+                        objective,
+                        input_data: inputData
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    closePlanModal();
+                    showTab('plans');
+                    updateStatus(`Plano ${data.plan_code} criado! Aguardando aprovação...`);
+                } else {
+                    alert(data.error || 'Erro ao criar plano');
+                }
+            } catch (e) {
+                alert('Erro: ' + e.message);
+            }
+        }
+        
+        // Load Plans
+        async function loadPlans() {
+            try {
+                const res = await fetch(`${API}/plans`);
+                const data = await res.json();
+                plans = data.plans || [];
+                
+                const pending = plans.filter(p => p.status === 'pending_approval');
+                const approved = plans.filter(p => ['approved', 'executing', 'completed'].includes(p.status));
+                
+                // Pending Plans
+                document.getElementById('pendingPlans').innerHTML = pending.length === 0 
+                    ? '<div class="empty">Nenhum plano pendente</div>'
+                    : pending.map(plan => renderPlanCard(plan)).join('');
+                
+                // Approved Plans
+                document.getElementById('approvedPlans').innerHTML = approved.length === 0
+                    ? '<div class="empty">Nenhum plano aprovado</div>'
+                    : approved.map(plan => renderPlanCard(plan)).join('');
+                
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        function renderPlanCard(plan) {
+            const statusLabels = {
+                'pending_approval': '⏳ Pendente',
+                'approved': '✅ Aprovado',
+                'executing': '▶️ Executando',
+                'completed': '✓ Concluído',
+                'rejected': '✗ Rejeitado'
+            };
+            
+            const steps = plan.planned_steps || [];
+            
+            return `
+                <div class="plan-card ${plan.status}">
+                    <div class="plan-header">
+                        <div>
+                            <div class="plan-title">${plan.icon_emoji || '📋'} ${plan.title}</div>
+                            <div class="plan-code mono">${plan.plan_code}</div>
+                        </div>
+                        <span class="plan-status">${statusLabels[plan.status] || plan.status}</span>
+                    </div>
+                    
+                    <div class="plan-strategy">${plan.strategy || ''}</div>
+                    
+                    <div class="plan-steps">
+                        ${steps.map((s, i) => `
+                            <div class="plan-step">
+                                <div class="step-number">${i + 1}</div>
+                                <span><strong>${s.agent_name}</strong> - ${s.title}</span>
+                                <span style="margin-left:auto;color:#666;">${s.estimated_minutes}min</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="display:flex;gap:8px;margin-top:12px;">
+                        ${plan.status === 'pending_approval' ? `
+                            <button class="btn btn-danger" onclick="rejectPlan('${plan.plan_code}')">Rejeitar</button>
+                            <button class="btn btn-success" onclick="approvePlan('${plan.plan_code}')">Aprovar</button>
+                        ` : plan.status === 'executing' ? `
+                            <button class="btn" onclick="viewExecution('${plan.plan_code}')">Ver Execução</button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function approvePlan(planCode) {
+            await fetch(`${API}/plans/${planCode}/approve`, { method: 'POST' });
+            loadPlans();
+            updateStatus('Plano aprovado! Execução iniciada...');
+        }
+        
+        async function rejectPlan(planCode) {
+            const reason = prompt('Motivo da rejeição:');
+            if (!reason) return;
+            
+            await fetch(`${API}/plans/${planCode}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+            loadPlans();
+            updateStatus('Plano rejeitado');
+        }
+        
+        function viewExecution(planCode) {
+            showTab('execution');
+        }
+        
+        async function loadExecution() {
+            // Busca sessões ativas
+            try {
+                const res = await fetch(`${API}/orchestration/sessions?status=running`);
+                const data = await res.json();
+                const sessions = data.sessions || [];
+                
+                if (sessions.length === 0) {
+                    document.getElementById('executionPanel').innerHTML = 
+                        '<div class="empty">Nenhuma execução ativa</div>';
+                    return;
+                }
+                
+                // Mostra primeira sessão
+                const session = sessions[0];
+                showSession(session.session_code);
+            } catch (e) {
+                document.getElementById('executionPanel').innerHTML = 
+                    `<div class="empty">Erro: ${e.message}</div>`;
+            }
+        }
+        
+        async function showSession(sessionCode) {
+            try {
+                const res = await fetch(`${API}/orchestration/sessions/${sessionCode}`);
+                const data = await res.json();
+                const s = data.session;
+                
+                const totalSteps = s.agent_outputs?.length || 0;
+                const currentStep = s.current_step_index || 0;
+                const progress = totalSteps > 0 ? Math.round((currentStep / totalSteps) * 100) : 0;
+                
+                let html = `
+                    <div style="margin-bottom:16px;">
+                        <strong>${s.plan_title}</strong>
+                        <div class="mono" style="font-size:12px;color:#666;">${s.plan_code} | ${s.session_code}</div>
+                    </div>
+                    
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width:${progress}%">${progress}%</div>
+                    </div>
+                    
+                    <div style="display:flex;gap:16px;margin-bottom:16px;font-size:12px;">
+                        <span>Step: ${currentStep + 1}/${totalSteps}</span>
+                        <span>Status: ${s.status}</span>
+                    </div>
+                    
+                    <div class="execution-log">
+                `;
+                
+                if (s.messages && s.messages.length > 0) {
+                    s.messages.forEach(msg => {
+                        const time = new Date(msg.created_at).toLocaleTimeString();
+                        const from = msg.from_name || 'Master';
+                        html += `<div class="log-entry"><span class="log-time">[${time}]</span> <span class="${from === 'Master' ? 'log-master' : 'log-agent'}">${from}:</span> ${msg.content}</div>`;
+                    });
+                } else {
+                    html += '<div class="log-entry">Aguardando mensagens...</div>';
+                }
+                
+                html += '</div>';
+                
+                document.getElementById('executionPanel').innerHTML = html;
+                
+            } catch (e) {
+                document.getElementById('executionPanel').innerHTML = 
+                    `<div class="empty">Erro: ${e.message}</div>`;
+            }
+        }
+        
+        // FEEDBACK FUNCTIONS
+        
+        // Setup star rating
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('star')) {
+                const rating = e.target.dataset.rating;
+                document.getElementById('fbRatingValue').value = rating;
+                
+                // Update visual
+                document.querySelectorAll('.star-rating .star').forEach(star => {
+                    if (star.dataset.rating <= rating) {
+                        star.classList.add('active');
+                    } else {
+                        star.classList.remove('active');
+                    }
+                });
+            }
+        });
+        
+        async function onFeedbackTypeChange() {
+            const type = document.getElementById('fbType').value;
+            
+            // Hide all specific fields
+            document.getElementById('fbPlanGroup').style.display = 'none';
+            document.getElementById('fbAgentGroup').style.display = 'none';
+            
+            if (type === 'plan') {
+                document.getElementById('fbPlanGroup').style.display = 'block';
+                await loadFeedbackPlans();
+            } else if (type === 'agent') {
+                document.getElementById('fbAgentGroup').style.display = 'block';
+                await loadFeedbackAgents();
+            }
+        }
+        
+        async function loadFeedbackPlans() {
+            try {
+                const res = await fetch(`${API}/plans`);
+                const data = await res.json();
+                const plans = data.plans || [];
+                
+                const select = document.getElementById('fbPlan');
+                select.innerHTML = '<option value="">Selecione um plano...</option>' +
+                    plans.map(p => `<option value="${p.id}">${p.plan_code} - ${p.title}</option>`).join('');
+            } catch (e) {
+                console.error('Erro ao carregar planos:', e);
+            }
+        }
+        
+        async function loadFeedbackAgents() {
+            try {
+                const res = await fetch(`${API}/agents`);
+                const data = await res.json();
+                const agents = data.agents || [];
+                
+                const select = document.getElementById('fbAgent');
+                select.innerHTML = '<option value="">Selecione um agente...</option>' +
+                    agents.map(a => `<option value="${a.id}">${a.avatar_emoji || '🤖'} ${a.name}</option>`).join('');
+            } catch (e) {
+                console.error('Erro ao carregar agentes:', e);
+            }
+        }
+        
+        async function submitFeedback() {
+            const type = document.getElementById('fbType').value;
+            const planId = document.getElementById('fbPlan').value;
+            const agentId = document.getElementById('fbAgent').value;
+            const userName = document.getElementById('fbUserName').value;
+            const rating = document.getElementById('fbRatingValue').value;
+            const content = document.getElementById('fbContent').value;
+            const tagsStr = document.getElementById('fbTags').value;
+            
+            if (!content) {
+                alert('Por favor, escreva seu feedback');
+                return;
+            }
+            
+            const tags = tagsStr.split(',').map(t => t.trim()).filter(t => t);
+            
+            try {
+                const res = await fetch(`${API}/feedbacks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        feedback_type: type,
+                        plan_id: planId || null,
+                        agent_id: agentId || null,
+                        user_name: userName || 'Usuário',
+                        rating: rating ? parseInt(rating) : null,
+                        content: content,
+                        tags: tags
+                    })
+                });
+                
+                if (res.ok) {
+                    alert('Feedback enviado com sucesso!');
+                    // Clear form
+                    document.getElementById('fbContent').value = '';
+                    document.getElementById('fbTags').value = '';
+                    document.getElementById('fbRatingValue').value = '';
+                    document.querySelectorAll('.star-rating .star').forEach(s => s.classList.remove('active'));
+                    loadFeedbacks();
+                } else {
+                    const data = await res.json();
+                    alert('Erro: ' + (data.error || 'Erro ao enviar'));
+                }
+            } catch (e) {
+                alert('Erro: ' + e.message);
+            }
+        }
+        
+        async function loadFeedbacks() {
+            try {
+                const res = await fetch(`${API}/feedbacks`);
+                const data = await res.json();
+                const feedbacks = data.feedbacks || [];
+                
+                const container = document.getElementById('feedbackList');
+                
+                if (feedbacks.length === 0) {
+                    container.innerHTML = '<div class="empty">Nenhum feedback ainda. Seja o primeiro!</div>';
+                    return;
+                }
+                
+                container.innerHTML = feedbacks.map(fb => renderFeedbackItem(fb)).join('');
+            } catch (e) {
+                document.getElementById('feedbackList').innerHTML = `<div class="empty">Erro: ${e.message}</div>`;
+            }
+        }
+        
+        function renderFeedbackItem(fb) {
+            const stars = fb.rating ? '★'.repeat(fb.rating) + '☆'.repeat(5 - fb.rating) : '';
+            const date = new Date(fb.created_at).toLocaleDateString('pt-BR');
+            
+            let contextInfo = '';
+            if (fb.plan_title) contextInfo = ` sobre plano "${fb.plan_title}"`;
+            if (fb.agent_name) contextInfo = ` sobre agente "${fb.agent_name}"`;
+            
+            return `
+                <div class="feedback-item">
+                    <div class="feedback-header">
+                        <div>
+                            <div class="feedback-user">${fb.user_name}${contextInfo}</div>
+                            <div class="feedback-meta">${date} • ${fb.feedback_type}</div>
+                        </div>
+                        ${stars ? `<div class="feedback-rating">${stars}</div>` : ''}
+                    </div>
+                    <div class="feedback-content">${fb.content}</div>
+                    ${fb.tags && fb.tags.length > 0 ? `
+                        <div class="feedback-tags">
+                            ${fb.tags.map(t => `<span class="feedback-tag">${t}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    ${fb.admin_response ? `
+                        <div class="feedback-response">
+                            <div class="feedback-response-label">📢 Resposta:</div>
+                            ${fb.admin_response}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // Utilities
+        function updateStatus(text) {
+            document.getElementById('statusText').textContent = text;
+            document.getElementById('statusTime').textContent = new Date().toLocaleTimeString();
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadServices();
+            loadAvailableAgents();
+            loadFeedbacks();
+            updateStatus('Sistema pronto');
+            
+            // Refresh plans se estiver na aba
+            setInterval(() => {
+                if (currentTab === 'plans') loadPlans();
+                if (currentTab === 'execution') loadExecution();
+                if (currentTab === 'feedback') loadFeedbacks();
+            }, 5000);
+        });
+        
+        // Atualiza feedback quando muda para aba
+        const originalShowTab = showTab;
+        showTab = function(tab) {
+            originalShowTab(tab);
+            if (tab === 'feedback') {
+                loadFeedbacks();
+            }
+        };
+    </script>
+</body>
+</html>

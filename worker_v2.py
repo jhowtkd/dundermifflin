@@ -9,9 +9,41 @@ import sys
 import time
 import json
 import logging
-import subprocess
+import random
+import sqlite3
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, List
+
+# Constantes
+KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
+WORKSPACE_DIR = Path.home() / ".openclaw" / "workspace"
+STUDIO_DIR = WORKSPACE_DIR / "studio" / "projects"
+DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
+
+# Configuração de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("dm-worker-v2")
+
+# Mock data compartilhada para conteúdo
+def _get_mock_carousel_data():
+    """Retorna dados mockados de carrossel - extraído para reutilização"""
+    return {
+        "slides": [
+            {"number": 1, "title": "A Era Vargas", "content": "Período de 1930-1945 que transformou o Brasil\n• Revolução de 1930\n• Estado Novo\n• Nacionalismo", "design_notes": "Bandeira do Brasil, cores verde e amarelo"},
+            {"number": 2, "title": "Revolução de 1930", "content": "Fim da República Velha\n• Getúlio Vargas no poder\n• Mudança política profunda\n• Urbanização acelerada", "design_notes": "Ícone de revolução, cores fortes"},
+            {"number": 3, "title": "Estado Novo (1937-1945)", "content": "Regime autoritário\n• Censura à imprensa\n• CLT criada\n• Industrialização", "design_notes": "Ícone de fábrica, trabalhadores"},
+            {"number": 4, "title": "Legado Econômico", "content": "• Nacionalização do petróleo\n• Siderurgia (CSN)\n• Eletrobrás\n• Bases da indústria", "design_notes": "Ícones industriais, gráficos"},
+            {"number": 5, "title": "Legado Social", "content": "• CLT e direitos trabalhistas\n• Férias pagas\n• 13º salário\n• Proteção ao trabalhador", "design_notes": "Ícone de família, trabalhadores"},
+            {"number": 6, "title": "Lições para Hoje", "content": "• Nacionalismo estratégico\n• Investimento em infra\n• Direitos trabalhistas\n• Educação e cultura", "design_notes": "Ícone de livro, futuro"},
+            {"number": 7, "title": "O Fim da Era", "content": "1945: Ditadura cai\n• Vargas volta democraticamente (1951)\n• Suicídio em 1954\n• Legado controverso", "design_notes": "Ponto final, reflexão"}
+        ],
+        "hashtags": ["#EraVargas", "#HistóriaBrasil", "#GetúlioVargas", "#História"],
+        "cta": "Qual aspecto da Era Vargas você acha mais relevante hoje? Comente! 👇"
+    }
 
 # Import local db module
 sys.path.insert(0, str(Path(__file__).parent))
@@ -21,11 +53,14 @@ from db import (
     create_proposal, approve_proposal, get_dashboard_stats
 )
 
-# Config
-KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
-WORKSPACE_DIR = Path.home() / ".openclaw" / "workspace"
-STUDIO_DIR = WORKSPACE_DIR / "studio" / "projects"
+# Import orchestrator
+from orchestrator import (
+    MasterAgent, OrchestrationSession,
+    get_pending_plans, get_approved_plans,
+    approve_plan, reject_plan
+)
 
+# Configuração de logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -36,7 +71,11 @@ class DunderMifflinWorkerV2:
     def __init__(self):
         self.running = True
         self.iteration = 0
+        self.master_agent = MasterAgent()
+        self.active_sessions = {}  # session_code -> OrchestrationSession
         logger.info("🚀 Dunder Mifflin Worker v2.0 iniciado (SQLite)")
+        logger.info(f"🎬 Master Agent: {self.master_agent.AGENT_SLUG}")
+        logger.info(f"   Agentes disponíveis: {len(self.master_agent.available_agents)}")
     
     def get_pending_missions(self):
         """Busca missões aprovadas (status approved)"""
@@ -90,8 +129,6 @@ class DunderMifflinWorkerV2:
     
     def _call_llm(self, prompt, agent_id="quill"):
         """Retorna conteúdo mockado baseado no tipo de prompt"""
-        import json
-        
         # Detecta tipo de conteúdo pelo prompt
         prompt_lower = prompt.lower()
         
@@ -157,19 +194,7 @@ class DunderMifflinWorkerV2:
             }, ensure_ascii=False)
         
         elif "carrossel" in prompt_lower:
-            return json.dumps({
-                "slides": [
-                    {"number": 1, "title": "A Era Vargas", "content": "Período de 1930-1945 que transformou o Brasil\n• Revolução de 1930\n• Estado Novo\n• Nacionalismo", "design_notes": "Bandeira do Brasil, cores verde e amarelo"},
-                    {"number": 2, "title": "Revolução de 1930", "content": "Fim da República Velha\n• Getúlio Vargas no poder\n• Mudança política profunda\n• Urbanização acelerada", "design_notes": "Ícone de revolução, cores fortes"},
-                    {"number": 3, "title": "Estado Novo (1937-1945)", "content": "Regime autoritário\n• Censura à imprensa\n• CLT criada\n• Industrialização", "design_notes": "Ícone de fábrica, trabalhadores"},
-                    {"number": 4, "title": "Legado Econômico", "content": "• Nacionalização do petróleo\n• Siderurgia (CSN)\n• Eletrobrás\n• Bases da indústria", "design_notes": "Ícones industriais, gráficos"},
-                    {"number": 5, "title": "Legado Social", "content": "• CLT e direitos trabalhistas\n• Férias pagas\n• 13º salário\n• Proteção ao trabalhador", "design_notes": "Ícone de família, trabalhadores"},
-                    {"number": 6, "title": "Lições para Hoje", "content": "• Nacionalismo estratégico\n• Investimento em infra\n• Direitos trabalhistas\n• Educação e cultura", "design_notes": "Ícone de livro, futuro"},
-                    {"number": 7, "title": "O Fim da Era", "content": "1945: Ditadura cai\n• Vargas volta democraticamente (1951)\n• Suicídio em 1954\n• Legado controverso", "design_notes": "Ponto final, reflexão"}
-                ],
-                "hashtags": ["#EraVargas", "#HistóriaBrasil", "#GetúlioVargas", "#História"],
-                "cta": "Qual aspecto da Era Vargas você acha mais relevante hoje? Comente! 👇"
-            }, ensure_ascii=False)
+            return json.dumps(_get_mock_carousel_data(), ensure_ascii=False)
         
         else:
             return f"Conteúdo gerado para: {prompt[:100]}...\n\nEste é um conteúdo de exemplo gerado pelo sistema."
@@ -177,20 +202,7 @@ class DunderMifflinWorkerV2:
     def _generate_mock_content(self, prompt):
         """Gera conteúdo mockado quando LLM falha"""
         if "carrossel" in prompt.lower() or "carousel" in prompt.lower():
-            return json.dumps({
-                "slides": [
-                    {"number": 1, "title": "A Era Vargas", "content": "Período de 1930-1945 que transformou o Brasil\n• Revolução de 1930\n• Estado Novo\n• Nacionalismo", "design_notes": "Bandeira do Brasil, cores verde e amarelo"},
-                    {"number": 2, "title": "Revolução de 1930", "content": "Fim da República Velha\n• Getúlio Vargas no poder\n• Mudança política profunda\n• Urbanização acelerada", "design_notes": "Ícone de revolução, cores fortes"},
-                    {"number": 3, "title": "Estado Novo (1937-1945)", "content": "Regime autoritário\n• Censura à imprensa\n• CLT criada\n• Industrialização", "design_notes": "Ícone de fábrica, trabalhadores"},
-                    {"number": 4, "title": "Legado Econômico", "content": "• Nacionalização do petróleo\n• Siderurgia (CSN)\n• Eletrobrás\n• Bases da indústria", "design_notes": "Ícones industriais, gráficos"},
-                    {"number": 5, "title": "Legado Social", "content": "• CLT e direitos trabalhistas\n• Férias pagas\n• 13º salário\n• Proteção ao trabalhador", "design_notes": "Ícone de família, trabalhadores"},
-                    {"number": 6, "title": "Lições para Hoje", "content": "• Nacionalismo estratégico\n• Investimento em infra\n• Direitos trabalhistas\n• Educação e cultura", "design_notes": "Ícone de livro, futuro"},
-                    {"number": 7, "title": "O Fim da Era", "content": "1945: Ditadura cai\n• Vargas volta democraticamente (1951)\n• Suicídio em 1954\n• Legado controverso", "design_notes": "Ponto final, reflexão"}
-                ],
-                "hashtags": ["#EraVargas", "#HistóriaBrasil", "#GetúlioVargas", "#História"],
-                "cta": "Qual aspecto da Era Vargas você acha mais relevante hoje? Comente! 👇"
-            }, ensure_ascii=False)
-        
+            return json.dumps(_get_mock_carousel_data(), ensure_ascii=False)
         return f"Conteúdo gerado para: {prompt[:100]}..."
     
     def _execute_content_mission(self, mission):
@@ -300,8 +312,6 @@ Retorne APENAS o JSON válido:"""
     
     def _save_carousel_file(self, title, carousel_data):
         """Salva carrossel em arquivo HTML na pasta studio"""
-        from datetime import datetime
-        
         # Cria pasta se não existir
         carousel_dir = STUDIO_DIR / "dunder_mifflin" / "carousels"
         carousel_dir.mkdir(parents=True, exist_ok=True)
@@ -534,6 +544,188 @@ REGRAS:
     
     def stop(self):
         self.running = False
+    
+    # ============================================================
+    # NOVOS MÉTODOS - ORQUESTRAÇÃO V2
+    # ============================================================
+    
+    def check_plans_needing_creation(self):
+        """Busca missões que precisam de plano (via serviço)"""
+        # Por enquanto, missões do tipo 'orchestrated' precisam de plano
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT m.*, a.slug as agent_slug
+            FROM missions m
+            JOIN agents a ON m.agent_id = a.id
+            WHERE m.status = 'approved' AND m.mission_type = 'orchestrated'
+        """)
+        missions = [dict(row) for row in cur.fetchall()]
+        conn.close()
+        return missions
+    
+    def create_plan_for_mission(self, mission):
+        """Cria plano via Master Agent"""
+        try:
+            logger.info(f"📋 Criando plano para missão: {mission['title']}")
+            
+            # Extrai service_id dos parâmetros da missão
+            params = json.loads(mission.get('parameters', '{}') or '{}')
+            service_id = params.get('service_id')
+            
+            if not service_id:
+                logger.error("   ❌ Missão sem service_id")
+                return None
+            
+            # Cria plano via Master
+            plan = self.master_agent.create_plan(
+                service_id=service_id,
+                title=mission['title'],
+                objective=mission.get('description', mission['title']),
+                input_data=params
+            )
+            
+            logger.info(f"   ✅ Plano criado: {plan['plan_code']}")
+            logger.info(f"   📊 Steps: {len(plan['steps'])}")
+            logger.info(f"   ⏱️  Duração estimada: {plan['estimated_duration_minutes']} min")
+            
+            # Atualiza missão com plan_code
+            conn = sqlite3.connect(DB_PATH)
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE missions SET parameters = ? WHERE id = ?
+            """, (json.dumps({**params, 'plan_code': plan['plan_code']}), mission['id']))
+            conn.commit()
+            conn.close()
+            
+            return plan
+            
+        except Exception as e:
+            logger.error(f"   ❌ Erro ao criar plano: {e}")
+            return None
+    
+    def execute_approved_plans(self):
+        """Executa planos aprovados"""
+        plans = get_approved_plans()
+        
+        if not plans:
+            return
+        
+        logger.info(f"🎯 {len(plans)} plano(s) aprovado(s) para execução")
+        
+        for plan in plans[:1]:  # Executa 1 por vez
+            try:
+                logger.info(f"▶️ Executando plano: {plan['plan_code']}")
+                
+                # Cria sessão
+                session = self.master_agent.execute_approved_plan(plan['id'])
+                self.active_sessions[session.session_code] = session
+                
+                # Executa steps sequencialmente
+                while not session.is_complete():
+                    step = session.next_step()
+                    if not step:
+                        break
+                    
+                    logger.info(f"   ⚙️ Step {step['step_index'] + 1}/{step['total_steps']}: {step['title']}")
+                    
+                    # Simula execução do agente (aqui chamaria o agente real)
+                    output = self._execute_agent_step(step, session)
+                    
+                    # Registra output
+                    quality_score = self._evaluate_quality(output)
+                    session.execute_step(step, output, quality_score)
+                    
+                    logger.info(f"   ✅ Output registrado (quality: {quality_score})")
+                    
+                    # Verifica loop
+                    if session.should_loop():
+                        logger.info("   🔄 Qualidade insuficiente, repetindo step...")
+                        if session.handle_loop():
+                            continue
+                    
+                    time.sleep(1)  # Pausa entre steps
+                
+                # Finaliza
+                final_output = self._aggregate_outputs(session.outputs)
+                session.complete(final_output, quality_score=8)
+                
+                logger.info(f"✅ Plano concluído: {plan['plan_code']}")
+                
+                # Remove da lista ativa
+                del self.active_sessions[session.session_code]
+                
+            except Exception as e:
+                logger.error(f"❌ Erro ao executar plano: {e}")
+                # Marca como falho
+                session.fail(str(e))
+    
+    def _execute_agent_step(self, step: Dict, session: OrchestrationSession) -> str:
+        """Executa um step específico (simulação)"""
+        agent_slug = step['agent_slug']
+        context = session.get_context_for_step(step)
+        
+        # Aqui você integraria com o agente real via Clawdbot
+        # Por enquanto, simulamos uma resposta
+        
+        output = f"Output do agente {agent_slug} para: {step['title']}\n"
+        output += f"Contexto: {context['objective'][:100]}...\n"
+        output += f"Execução completada com sucesso."
+        
+        return output
+    
+    def _evaluate_quality(self, output: str) -> int:
+        """Avalia qualidade do output (simulação)"""
+        # Simulação: retorna score aleatório entre 7-10
+        return random.randint(7, 10)
+    
+    def _aggregate_outputs(self, outputs: List[Dict]) -> str:
+        """Agrega outputs de todos os steps"""
+        aggregated = "RESULTADO FINAL:\n\n"
+        for out in outputs:
+            aggregated += f"\n--- {out['agent_slug']} ---\n{out['output'][:300]}...\n"
+        return aggregated
+    
+    def run_v2(self):
+        """Loop principal V2 - com orquestração"""
+        logger.info("🔁 Worker V2 iniciando loop principal")
+        logger.info("⏳ Aguardando missões e planos...")
+        
+        while self.running:
+            try:
+                self.iteration += 1
+                
+                # 1. PRIMEIRO: Executa planos APROVADOS
+                self.execute_approved_plans()
+                
+                # 2. SEGUNDO: Processa missões que PRECISAM de plano
+                pending_missions = self.check_plans_needing_creation()
+                if pending_missions:
+                    logger.info(f"📋 {len(pending_missions)} missão(ões) precisam de plano")
+                    for mission in pending_missions[:2]:
+                        self.create_plan_for_mission(mission)
+                        time.sleep(2)
+                
+                # 3. TERCEIRO: Processa missões normais (compatibilidade)
+                missions = self.get_pending_missions()
+                if missions:
+                    logger.info(f"📋 {len(missions)} missão(ões) aprovada(s)!")
+                    for mission in missions[:2]:
+                        self.execute_mission(mission)
+                        time.sleep(3)
+                
+                # Heartbeat
+                if self.iteration % 12 == 0:
+                    logger.info("💓 Worker V2 ativo")
+                
+                time.sleep(5)
+                    
+            except KeyboardInterrupt:
+                logger.info("👋 Worker V2 parado pelo usuário")
+                self.running = False
+            except Exception as e:
+                logger.error(f"❌ Erro no loop V2: {e}")
+                time.sleep(10)
 
 def main():
     """Entry point"""
@@ -541,9 +733,16 @@ def main():
     init_db()
     seed_agents()
     
-    # Cria worker e roda
+    # Migra orquestração se necessário
+    try:
+        import migrate_orchestration
+        migrate_orchestration.migrate()
+    except Exception as e:
+        logger.warning(f"Migração já realizada ou erro: {e}")
+    
+    # Cria worker e roda (versão V2)
     worker = DunderMifflinWorkerV2()
-    worker.run()
+    worker.run_v2()  # Usa novo loop com orquestração
 
 if __name__ == "__main__":
     main()

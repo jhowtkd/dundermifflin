@@ -182,3 +182,100 @@ INSERT OR IGNORE INTO personas (slug, name, avatar_emoji, catch_phrase) VALUES
     ('angela', 'Angela Martin', '🐈', 'I don''t back down.'),
     ('kevin', 'Kevin Malone', '🍲', 'Why waste time say lot word?'),
     ('oscar', 'Oscar Martinez', '📊', 'Actually...');
+
+-- ============================================================
+-- ORCHESTRATION V2 - 5 Novas Tabelas
+-- ============================================================
+
+-- 1. SERVICES (Workflows reutilizáveis)
+CREATE TABLE IF NOT EXISTS services (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    service_code TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    description TEXT,
+    icon_emoji TEXT DEFAULT '⚙️',
+    agent_sequence TEXT NOT NULL,      -- JSON: ["researcher", "writer", "reviewer"]
+    loop_config TEXT,                   -- JSON: {enabled, max_iterations, until_score}
+    requires_approval BOOLEAN DEFAULT 1,
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. SERVICE_STEPS (Template de cada step)
+CREATE TABLE IF NOT EXISTS service_steps (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    service_id INTEGER NOT NULL,
+    step_order INTEGER NOT NULL,
+    agent_slug TEXT NOT NULL,
+    step_name TEXT NOT NULL,
+    action_type TEXT DEFAULT 'execute',  -- execute, review, transform
+    input_mapping TEXT,                   -- JSON
+    timeout_seconds INTEGER DEFAULT 300,
+    FOREIGN KEY (service_id) REFERENCES services(id) ON DELETE CASCADE
+);
+
+-- 3. EXECUTION_PLANS (Planos do Master para aprovação)
+CREATE TABLE IF NOT EXISTS execution_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_code TEXT UNIQUE NOT NULL,
+    mission_id INTEGER,
+    service_id INTEGER,
+    title TEXT NOT NULL,
+    objective TEXT NOT NULL,
+    strategy TEXT,                        -- Explicação do Master
+    planned_steps TEXT NOT NULL,          -- JSON detalhado
+    estimated_duration_minutes INTEGER,
+    status TEXT DEFAULT 'pending_approval',  -- pending_approval → approved → executing → completed/failed
+    approved_by TEXT,
+    approved_at DATETIME,
+    rejection_reason TEXT,
+    started_at DATETIME,
+    completed_at DATETIME,
+    final_result TEXT,
+    quality_score INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (mission_id) REFERENCES missions(id),
+    FOREIGN KEY (service_id) REFERENCES services(id)
+);
+
+-- 4. ORCHESTRATION_SESSIONS (Sessão de execução)
+CREATE TABLE IF NOT EXISTS orchestration_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_code TEXT UNIQUE NOT NULL,
+    execution_plan_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'initializing',
+    current_step_index INTEGER DEFAULT 0,
+    current_agent_id INTEGER,
+    shared_context TEXT,                  -- JSON compartilhado entre agentes
+    agent_outputs TEXT,                   -- JSON array dos outputs
+    current_loop_iteration INTEGER DEFAULT 0,
+    started_at DATETIME,
+    completed_at DATETIME,
+    FOREIGN KEY (execution_plan_id) REFERENCES execution_plans(id)
+);
+
+-- 5. AGENT_MESSAGES (Comunicação inter-agentes)
+CREATE TABLE IF NOT EXISTS agent_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_code TEXT UNIQUE NOT NULL,
+    session_id INTEGER NOT NULL,
+    from_agent_id INTEGER,                -- NULL = Master
+    to_agent_id INTEGER,                  -- NULL = broadcast
+    message_type TEXT NOT NULL,           -- instruction, response, handoff, feedback
+    content TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES orchestration_sessions(id) ON DELETE CASCADE
+);
+
+-- Indexes para performance
+CREATE INDEX IF NOT EXISTS idx_services_slug ON services(slug);
+CREATE INDEX IF NOT EXISTS idx_services_active ON services(is_active);
+CREATE INDEX IF NOT EXISTS idx_service_steps_service ON service_steps(service_id);
+CREATE INDEX IF NOT EXISTS idx_execution_plans_status ON execution_plans(status);
+CREATE INDEX IF NOT EXISTS idx_execution_plans_mission ON execution_plans(mission_id);
+CREATE INDEX IF NOT EXISTS idx_orchestration_sessions_plan ON orchestration_sessions(execution_plan_id);
+CREATE INDEX IF NOT EXISTS idx_orchestration_sessions_status ON orchestration_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_agent_messages_session ON agent_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_agent_messages_created ON agent_messages(created_at);
