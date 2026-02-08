@@ -1219,7 +1219,11 @@
         }
         
         async function approvePlan(planCode) {
-            await fetch(`${API}/plans/${planCode}/approve`, { method: 'POST' });
+            await fetch(`${API}/plans/${planCode}/approve`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ approved_by: 'user' })
+            });
             loadPlans();
             updateStatus('Plano aprovado! Execução iniciada...');
         }
