@@ -730,6 +730,153 @@
             font-size: 11px;
             margin-top: 16px;
         }
+        
+        /* ===== RESPONSIVIDADE ===== */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .window {
+                max-width: 100%;
+            }
+            
+            .window-content {
+                padding: 10px;
+            }
+            
+            /* Menu hamburguer em telas pequenas */
+            .menu-bar {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 8px 0;
+            }
+            
+            .menu-item {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+            
+            /* Grid de serviços em 1 coluna */
+            .services-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            /* Form em 1 coluna */
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            /* Agentes: lista maior em mobile */
+            .agent-list {
+                max-height: 350px;
+            }
+            
+            .agent-item .agent-details {
+                font-size: 12px;
+            }
+            
+            .agent-item .agent-desc {
+                font-size: 12px;
+            }
+            
+            .agent-item .agent-example {
+                font-size: 11px;
+            }
+            
+            /* Cards menores em mobile */
+            .service-card {
+                padding: 10px;
+            }
+            
+            .service-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            /* Sequência de agentes em 1 coluna */
+            .sequence-display {
+                flex-direction: column;
+            }
+            
+            .sequence-arrow {
+                transform: rotate(90deg);
+                margin: 4px 0;
+            }
+            
+            /* Planos em 1 coluna */
+            .plan-list {
+                grid-template-columns: 1fr;
+            }
+            
+            /* Feedback em 1 coluna */
+            .feedback-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            /* Status bar em coluna */
+            .status-bar {
+                flex-direction: column;
+                gap: 4px;
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .window-title h1 {
+                font-size: 12px;
+            }
+            
+            .panel-header {
+                font-size: 12px;
+            }
+            
+            .menu-bar {
+                gap: 4px;
+            }
+            
+            .menu-item {
+                font-size: 11px;
+                padding: 3px 6px;
+            }
+            
+            .agent-item {
+                padding: 8px;
+            }
+            
+            .agent-item .agent-emoji {
+                font-size: 20px;
+            }
+            
+            .agent-item .agent-name {
+                font-size: 13px;
+            }
+            
+            button {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+            
+            input, textarea, select {
+                font-size: 16px; /* Previne zoom em iOS */
+            }
+        }
+        
+        @media (max-width: 360px) {
+            body {
+                padding: 5px;
+            }
+            
+            .window-content {
+                padding: 8px;
+            }
+            
+            .agent-list {
+                max-height: 300px;
+            }
+        }
     </style>
 </head>
 <body>
