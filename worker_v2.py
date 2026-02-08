@@ -606,59 +606,152 @@ REGRAS:
     
     def execute_approved_plans(self):
         """Executa planos aprovados"""
-        plans = get_approved_plans()
+        # 1. Primeiro, continua planos que estão em execução
+        executing_plans = self.get_executing_plans()
+        if executing_plans:
+            logger.info(f"🔄 {len(executing_plans)} plano(s) em execução")
+            for plan in executing_plans[:1]:
+                self._continue_plan_execution(plan)
+            return  # Prioriza continuar execuções existentes
         
+        # 2. Depois, inicia novos planos aprovados
+        plans = get_approved_plans()
         if not plans:
             return
         
         logger.info(f"🎯 {len(plans)} plano(s) aprovado(s) para execução")
         
         for plan in plans[:1]:  # Executa 1 por vez
-            try:
-                logger.info(f"▶️ Executando plano: {plan['plan_code']}")
+            self._start_plan_execution(plan)
+    
+    def get_executing_plans(self) -> List[Dict]:
+        """Busca planos que estão em execução mas não completos"""
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row  # IMPORTANTE: permite converter para dict
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT ep.*, s.name as service_name
+            FROM execution_plans ep
+            JOIN services s ON ep.service_id = s.id
+            WHERE ep.status = 'executing'
+            AND ep.id NOT IN (
+                SELECT execution_plan_id 
+                FROM orchestration_sessions 
+                WHERE status = 'completed'
+            )
+        """)
+        
+        plans = [dict(row) for row in cur.fetchall()]
+        conn.close()
+        
+        for plan in plans:
+            plan['planned_steps'] = json.loads(plan.get('planned_steps', '[]') or '[]')
+        
+        return plans
+    
+    def _start_plan_execution(self, plan: Dict):
+        """Inicia execução de um novo plano"""
+        try:
+            logger.info(f"▶️ Iniciando plano: {plan['plan_code']}")
+            
+            # Cria sessão
+            session = self.master_agent.execute_approved_plan(plan['id'])
+            self.active_sessions[session.session_code] = session
+            
+            # Executa steps
+            self._run_session_steps(session, plan)
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao executar plano: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+    
+    def _continue_plan_execution(self, plan: Dict):
+        """Continua execução de um plano em andamento"""
+        try:
+            logger.info(f"🔄 Continuando plano: {plan['plan_code']}")
+            
+            # Busca sessão existente
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, session_code FROM orchestration_sessions 
+                WHERE execution_plan_id = ? AND status = 'running'
+                ORDER BY created_at DESC
+            """, (plan['id'],))
+            row = cur.fetchone()
+            conn.close()
+            
+            if not row:
+                logger.warning(f"   ⚠️ Sessão não encontrada para plano {plan['plan_code']}")
+                # Reset status para permitir reinício
+                conn = sqlite3.connect(DB_PATH)
+                cur = conn.cursor()
+                cur.execute("""
+                    UPDATE execution_plans SET status = 'approved' WHERE id = ?
+                """, (plan['id'],))
+                conn.commit()
+                conn.close()
+                return
+            
+            # Carrega sessão existente
+            from orchestrator import OrchestrationSession
+            session = OrchestrationSession.load_by_id(row['id'])
+            self.active_sessions[session.session_code] = session
+            
+            # Continua execução
+            self._run_session_steps(session, plan)
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao continuar plano: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+    
+    def _run_session_steps(self, session, plan: Dict):
+        """Executa os steps de uma sessão"""
+        try:
+            # Executa steps sequencialmente
+            while not session.is_complete():
+                step = session.next_step()
+                if not step:
+                    break
                 
-                # Cria sessão
-                session = self.master_agent.execute_approved_plan(plan['id'])
-                self.active_sessions[session.session_code] = session
+                logger.info(f"   ⚙️ Step {step['step_index'] + 1}/{step['total_steps']}: {step['title']}")
                 
-                # Executa steps sequencialmente
-                while not session.is_complete():
-                    step = session.next_step()
-                    if not step:
-                        break
-                    
-                    logger.info(f"   ⚙️ Step {step['step_index'] + 1}/{step['total_steps']}: {step['title']}")
-                    
-                    # Simula execução do agente (aqui chamaria o agente real)
-                    output = self._execute_agent_step(step, session)
-                    
-                    # Registra output
-                    quality_score = self._evaluate_quality(output)
-                    session.execute_step(step, output, quality_score)
-                    
-                    logger.info(f"   ✅ Output registrado (quality: {quality_score})")
-                    
-                    # Verifica loop
-                    if session.should_loop():
-                        logger.info("   🔄 Qualidade insuficiente, repetindo step...")
-                        if session.handle_loop():
-                            continue
-                    
-                    time.sleep(1)  # Pausa entre steps
+                # Simula execução do agente
+                output = self._execute_agent_step(step, session)
                 
-                # Finaliza
-                final_output = self._aggregate_outputs(session.outputs)
-                session.complete(final_output, quality_score=8)
+                # Registra output
+                quality_score = self._evaluate_quality(output)
+                session.execute_step(step, output, quality_score)
                 
-                logger.info(f"✅ Plano concluído: {plan['plan_code']}")
+                logger.info(f"   ✅ Output registrado (quality: {quality_score})")
                 
-                # Remove da lista ativa
+                # Verifica loop
+                if session.should_loop():
+                    logger.info("   🔄 Qualidade insuficiente, repetindo step...")
+                    if session.handle_loop():
+                        continue
+                
+                time.sleep(1)  # Pausa entre steps
+            
+            # Finaliza
+            final_output = self._aggregate_outputs(session.outputs)
+            session.complete(final_output, quality_score=8)
+            
+            logger.info(f"✅ Plano concluído: {plan['plan_code']}")
+            
+            # Remove da lista ativa
+            if session.session_code in self.active_sessions:
                 del self.active_sessions[session.session_code]
                 
-            except Exception as e:
-                logger.error(f"❌ Erro ao executar plano: {e}")
-                # Marca como falho
-                session.fail(str(e))
+        except Exception as e:
+            logger.error(f"❌ Erro nos steps: {e}")
+            session.fail(str(e))
+            if session.session_code in self.active_sessions:
+                del self.active_sessions[session.session_code]
     
     def _execute_agent_step(self, step: Dict, session: OrchestrationSession) -> str:
         """Executa um step específico (simulação)"""

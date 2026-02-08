@@ -271,6 +271,58 @@ class OrchestrationSession:
         self._load_plan()
         self._create_session()
     
+    @classmethod
+    def load_by_id(cls, session_id: int) -> 'OrchestrationSession':
+        """Carrega uma sessão existente do banco"""
+        conn = Database.get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT os.*, ep.title as plan_title, ep.objective, ep.planned_steps,
+                   ep.agent_sequence, ep.loop_config
+            FROM orchestration_sessions os
+            JOIN execution_plans ep ON os.execution_plan_id = ep.id
+            WHERE os.id = ?
+        """, (session_id,))
+        row = cur.fetchone()
+        conn.close()
+        
+        if not row:
+            raise ValueError(f"Sessão não encontrada: {session_id}")
+        
+        # Cria instância sem chamar __init__
+        instance = cls.__new__(cls)
+        instance.session_id = row['id']
+        instance.session_code = row['session_code']
+        instance.plan_id = row['execution_plan_id']
+        instance.current_step_index = row['current_step_index']
+        instance.master_id = cls._get_master_id_static()
+        
+        # Carrega plano
+        instance.plan = {
+            'id': row['execution_plan_id'],
+            'title': row['plan_title'],
+            'objective': row['objective'],
+            'planned_steps': json.loads(row['planned_steps'] or '[]'),
+            'agent_sequence': json.loads(row['agent_sequence'] or '[]'),
+            'loop_config': json.loads(row['loop_config'] or '{}')
+        }
+        
+        # Carrega outputs
+        instance.outputs = json.loads(row['agent_outputs'] or '[]')
+        
+        return instance
+    
+    @staticmethod
+    def _get_master_id_static() -> Optional[int]:
+        """Busca ID do agente master (static version)"""
+        conn = Database.get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM agents WHERE slug = ?", (MASTER_AGENT_SLUG,))
+        row = cur.fetchone()
+        conn.close()
+        return row[0] if row else None
+    
     def _get_master_id(self) -> Optional[int]:
         """Busca ID do agente master"""
         conn = Database.get_connection()
