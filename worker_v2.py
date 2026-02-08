@@ -11,6 +11,7 @@ import json
 import logging
 import random
 import sqlite3
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List
@@ -773,16 +774,45 @@ REGRAS:
                 del self.active_sessions[session.session_code]
     
     def _execute_agent_step(self, step: Dict, session: OrchestrationSession) -> str:
-        """Executa um step específico (simulação)"""
+        """Executa um step específico chamando agente real"""
         agent_slug = step['agent_slug']
         context = session.get_context_for_step(step)
         
-        # Aqui você integraria com o agente real via Clawdbot
-        # Por enquanto, simulamos uma resposta
+        logger.info(f"   🤖 Chamando agente: {agent_slug}")
         
-        output = f"Output do agente {agent_slug} para: {step['title']}\n"
-        output += f"Contexto: {context['objective'][:100]}...\n"
-        output += f"Execução completada com sucesso."
+        try:
+            # Chama o executor de agentes via subprocess
+            import subprocess
+            import json
+            
+            cmd = [
+                sys.executable,
+                str(Path(__file__).parent / "agent_executor.py"),
+                agent_slug,
+                context['objective']
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minutos timeout
+            )
+            
+            if result.returncode == 0:
+                output_data = json.loads(result.stdout)
+                output = output_data.get('output', result.stdout)
+                logger.info(f"   ✅ Agente {agent_slug} completou com sucesso")
+            else:
+                output = f"Erro ao executar agente {agent_slug}: {result.stderr}"
+                logger.error(f"   ❌ Agente {agent_slug} falhou: {result.stderr}")
+                
+        except subprocess.TimeoutExpired:
+            output = f"Timeout ao executar agente {agent_slug}"
+            logger.error(f"   ⏱️ Timeout no agente {agent_slug}")
+        except Exception as e:
+            output = f"Erro ao chamar agente {agent_slug}: {str(e)}"
+            logger.error(f"   ❌ Erro no agente {agent_slug}: {e}")
         
         return output
     
