@@ -4,15 +4,22 @@ Dunder Mifflin Worker v2.0 - SQLite Local Edition
 Sem dependência do Convex, roda 100% local.
 """
 
+"""
+Dunder Mifflin Worker v2.0 - SQLite Local Edition
+Sem dependência do Convex, roda 100% local.
+"""
+
 import os
 import sys
 import time
 import json
 import sqlite3
-import logging
-import subprocess
 from datetime import datetime
 from pathlib import Path
+
+# Constantes
+DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
+KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
 
 # Config
 DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
@@ -104,18 +111,16 @@ def seed_agents():
 
 def list_agents():
     """Lista todos os agentes"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM agents ORDER BY priority DESC")
-    rows = cur.fetchall()
+    result = _fetch_all_as_dict(cur)
     conn.close()
-    return [dict(row) for row in rows]
+    return result
 
 def get_agent_by_slug(slug):
     """Busca agente por slug"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM agents WHERE slug = ?", (slug,))
     row = cur.fetchone()
@@ -174,38 +179,41 @@ def approve_proposal(proposal_id, notes=""):
     print(f"✅ Missão criada: {mission_code} - {proposal['title']}")
     return mission_id
 
-def list_missions(status=None, limit=50):
-    """Lista missões"""
+def _fetch_all_as_dict(cur):
+    """Helper: converte resultados da query para lista de dicts"""
+    return [dict(row) for row in cur.fetchall()]
+
+
+def _get_db_connection():
+    """Helper: cria conexão com row_factory configurado"""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    return conn
+
+
+def list_missions(status=None, limit=50):
+    """Lista missões"""
+    conn = _get_db_connection()
     cur = conn.cursor()
     
-    if status:
-        cur.execute("""
-            SELECT m.*, a.name as agent_name, a.slug as agent_slug 
-            FROM missions m 
-            JOIN agents a ON m.agent_id = a.id 
-            WHERE m.status = ? 
-            ORDER BY m.created_at DESC 
-            LIMIT ?
-        """, (status, limit))
-    else:
-        cur.execute("""
-            SELECT m.*, a.name as agent_name, a.slug as agent_slug 
-            FROM missions m 
-            JOIN agents a ON m.agent_id = a.id 
-            ORDER BY m.created_at DESC 
-            LIMIT ?
-        """, (limit,))
+    base_query = """
+        SELECT m.*, a.name as agent_name, a.slug as agent_slug 
+        FROM missions m 
+        JOIN agents a ON m.agent_id = a.id 
+    """
     
-    rows = cur.fetchall()
+    if status:
+        cur.execute(base_query + "WHERE m.status = ? ORDER BY m.created_at DESC LIMIT ?", (status, limit))
+    else:
+        cur.execute(base_query + "ORDER BY m.created_at DESC LIMIT ?", (limit,))
+    
+    result = _fetch_all_as_dict(cur)
     conn.close()
-    return [dict(row) for row in rows]
+    return result
 
 def get_mission(mission_id):
     """Busca missão por ID"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT m.*, a.name as agent_name, a.slug as agent_slug 
@@ -290,8 +298,7 @@ def add_event(event_type, title, description=None, payload=None, severity="info"
 
 def list_departments():
     """Lista todos os departamentos"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT d.*, COUNT(a.id) as agent_count
@@ -300,15 +307,14 @@ def list_departments():
         GROUP BY d.id
         ORDER BY d.name
     """)
-    rows = cur.fetchall()
+    result = _fetch_all_as_dict(cur)
     conn.close()
-    return [dict(row) for row in rows]
+    return result
 
 
 def get_department(slug):
     """Busca departamento por slug com seus agentes"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
 
     # Busca departamento
@@ -327,7 +333,7 @@ def get_department(slug):
         WHERE department = ?
         ORDER BY priority DESC, name
     """, (slug,))
-    dept['agents'] = [dict(row) for row in cur.fetchall()]
+    dept['agents'] = _fetch_all_as_dict(cur)
 
     conn.close()
     return dept
@@ -335,29 +341,23 @@ def get_department(slug):
 
 def list_agents_by_department(department=None):
     """Lista agentes, opcionalmente filtrado por departamento"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
 
-    if department:
-        cur.execute("""
-            SELECT a.*, d.name as department_name, d.emoji as department_emoji
-            FROM agents a
-            LEFT JOIN departments d ON a.department = d.slug
-            WHERE a.department = ?
-            ORDER BY a.priority DESC, a.name
-        """, (department,))
-    else:
-        cur.execute("""
-            SELECT a.*, d.name as department_name, d.emoji as department_emoji
-            FROM agents a
-            LEFT JOIN departments d ON a.department = d.slug
-            ORDER BY a.department, a.priority DESC, a.name
-        """)
+    base_query = """
+        SELECT a.*, d.name as department_name, d.emoji as department_emoji
+        FROM agents a
+        LEFT JOIN departments d ON a.department = d.slug
+    """
 
-    rows = cur.fetchall()
+    if department:
+        cur.execute(base_query + "WHERE a.department = ? ORDER BY a.priority DESC, a.name", (department,))
+    else:
+        cur.execute(base_query + "ORDER BY a.department, a.priority DESC, a.name")
+
+    result = _fetch_all_as_dict(cur)
     conn.close()
-    return [dict(row) for row in rows]
+    return result
 
 
 def get_agent_content(slug):
@@ -378,8 +378,7 @@ def get_agent_content(slug):
 
 def list_personas():
     """Lista todas as personas com seus agentes mapeados"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT p.*, a.name as agent_name, a.slug as agent_slug, a.department
@@ -387,15 +386,14 @@ def list_personas():
         LEFT JOIN agents a ON p.agent_id = a.id
         ORDER BY p.name
     """)
-    rows = cur.fetchall()
+    result = _fetch_all_as_dict(cur)
     conn.close()
-    return [dict(row) for row in rows]
+    return result
 
 
 def get_persona(slug):
     """Busca persona por slug"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT p.*, a.name as agent_name, a.slug as agent_slug,
@@ -411,26 +409,22 @@ def get_persona(slug):
 
 def list_commands(command_type=None):
     """Lista todos os comandos"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
 
     if command_type:
-        cur.execute("""
-            SELECT * FROM commands WHERE command_type = ? ORDER BY slug
-        """, (command_type,))
+        cur.execute("SELECT * FROM commands WHERE command_type = ? ORDER BY slug", (command_type,))
     else:
         cur.execute("SELECT * FROM commands ORDER BY command_type, slug")
 
-    rows = cur.fetchall()
+    result = _fetch_all_as_dict(cur)
     conn.close()
-    return [dict(row) for row in rows]
+    return result
 
 
 def get_command(slug):
     """Busca comando por slug"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM commands WHERE slug = ?", (slug,))
     row = cur.fetchone()
@@ -440,8 +434,7 @@ def get_command(slug):
 
 def get_events(limit=50):
     """Lista eventos recentes"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         SELECT e.*, a.name as agent_name, m.title as mission_title
@@ -451,38 +444,30 @@ def get_events(limit=50):
         ORDER BY e.occurred_at DESC
         LIMIT ?
     """, (limit,))
-    rows = cur.fetchall()
+    result = _fetch_all_as_dict(cur)
     conn.close()
-    return [dict(row) for row in rows]
+    return result
 
 
 def list_proposals(status=None, limit=50):
     """Lista propostas"""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = _get_db_connection()
     cur = conn.cursor()
 
-    if status:
-        cur.execute("""
-            SELECT p.*, a.name as agent_name, a.slug as agent_slug, a.avatar_emoji
-            FROM proposals p
-            JOIN agents a ON p.agent_id = a.id
-            WHERE p.status = ?
-            ORDER BY p.proposed_at DESC
-            LIMIT ?
-        """, (status, limit))
-    else:
-        cur.execute("""
-            SELECT p.*, a.name as agent_name, a.slug as agent_slug, a.avatar_emoji
-            FROM proposals p
-            JOIN agents a ON p.agent_id = a.id
-            ORDER BY p.proposed_at DESC
-            LIMIT ?
-        """, (limit,))
+    base_query = """
+        SELECT p.*, a.name as agent_name, a.slug as agent_slug, a.avatar_emoji
+        FROM proposals p
+        JOIN agents a ON p.agent_id = a.id
+    """
 
-    rows = cur.fetchall()
+    if status:
+        cur.execute(base_query + "WHERE p.status = ? ORDER BY p.proposed_at DESC LIMIT ?", (status, limit))
+    else:
+        cur.execute(base_query + "ORDER BY p.proposed_at DESC LIMIT ?", (limit,))
+
+    result = _fetch_all_as_dict(cur)
     conn.close()
-    return [dict(row) for row in rows]
+    return result
 
 
 def get_dashboard_stats_extended():

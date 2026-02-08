@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dunder Mifflin - Histórico</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --win-bg: #c0c0c0;
+            --win-highlight: #ffffff;
+            --win-shadow: #808080;
+            --win-dark: #404040;
+            --win-blue: #000080;
+            --win-blue-light: #1084d0;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #008080;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .mono { font-family: 'VT323', monospace; font-size: 18px; }
+        
+        .window {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .window-title {
+            background: linear-gradient(90deg, var(--win-blue), var(--win-blue-light));
+            color: white;
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .window-title h1 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .window-btn {
+            width: 20px;
+            height: 18px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #000;
+        }
+        
+        .window-content {
+            padding: 16px;
+        }
+        
+        .menu-bar {
+            display: flex;
+            gap: 16px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--win-shadow);
+            margin-bottom: 16px;
+        }
+        
+        .menu-item {
+            font-size: 13px;
+            cursor: pointer;
+            padding: 2px 8px;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .menu-item:hover {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+        
+        .tab {
+            padding: 6px 16px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .tab.active {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        .panel {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            min-height: 400px;
+        }
+        
+        .list-item {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .list-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .item-info h4 {
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .item-meta {
+            font-size: 11px;
+            color: var(--win-shadow);
+        }
+        
+        .item-status {
+            padding: 4px 12px;
+            font-size: 11px;
+            background: var(--win-bg);
+            border: 1px solid var(--win-shadow);
+        }
+        
+        .item-status.completed {
+            background: #c6efce;
+            color: #006100;
+        }
+        
+        .item-status.running {
+            background: #ffeb9c;
+            color: #9c5700;
+        }
+        
+        .item-status.failed {
+            background: #ffc7ce;
+            color: #9c0006;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--win-shadow);
+            font-size: 13px;
+        }
+        
+        .status-bar {
+            background: var(--win-bg);
+            border-top: 1px solid var(--win-highlight);
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-top: 16px;
+        }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="window-title">
+            <h1>📁 DUNDER MIFFLIN - HISTÓRICO</h1>
+            <div class="window-controls">
+                <a href="index.html" class="window-btn">×</a>
+            </div>
+        </div>
+        
+        <div class="window-content">
+            <div class="menu-bar">
+                <a href="index.html" class="menu-item">Dashboard</a>
+                <a href="services.html" class="menu-item">Serviços</a>
+                <span class="menu-item" style="background:var(--win-blue);color:white;">Histórico</span>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('missions')">Missões</div>
+                <div class="tab" onclick="showTab('executions')">Execuções</div>
+                <div class="tab" onclick="showTab('files')">Arquivos</div>
+            </div>
+            
+            <div class="panel">
+                <div id="tab-missions">
+                    <div id="missionsList">
+                        <div style="padding:40px;text-align:center;color:#666;">Carregando...</div>
+                    </div>
+                </div>
+                
+                <div id="tab-executions" class="hidden">
+                    <div id="executionsList">
+                        <div style="padding:40px;text-align:center;color:#666;">Carregando...</div>
+                    </div>
+                </div>
+                
+                <div id="tab-files" class="hidden">
+                    <div id="filesList">
+                        <div style="padding:40px;text-align:center;color:#666;">Carregando...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <span id="statusText">Pronto</span>
+            <span id="statusCount">0 itens</span>
+        </div>
+    </div>
+    
+    <script>
+        const API = '/api';
+        let currentTab = 'missions';
+        
+        function showTab(tab) {
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            currentTab = tab;
+            loadCurrentTab();
+        }
+        
+        function loadCurrentTab() {
+            if (currentTab === 'missions') loadMissions();
+            if (currentTab === 'executions') loadExecutions();
+            if (currentTab === 'files') loadFiles();
+        }
+        
+        async function loadMissions() {
+            try {
+                const res = await fetch(`${API}/missions`);
+                const data = await res.json();
+                const missions = data.missions || [];
+                
+                const container = document.getElementById('missionsList');
+                
+                if (missions.length === 0) {
+                    container.innerHTML = '<div class="empty">Nenhuma missão no histórico</div>';
+                    return;
+                }
+                
+                container.innerHTML = missions.map(m => `
+                    <div class="list-item">
+                        <div class="item-info">
+                            <h4>${m.title}</h4>
+                            <div class="item-meta">
+                                ${m.mission_code} | ${m.agent_name} | ${new Date(m.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <span class="item-status ${m.status}">${m.status.toUpperCase()}</span>
+                    </div>
+                `).join('');
+                
+                document.getElementById('statusCount').textContent = `${missions.length} missões`;
+            } catch (e) {
+                document.getElementById('missionsList').innerHTML = 
+                    `<div class="empty">Erro: ${e.message}</div>`;
+            }
+        }
+        
+        async function loadExecutions() {
+            try {
+                const res = await fetch(`${API}/orchestration/sessions`);
+                const data = await res.json();
+                const sessions = data.sessions || [];
+                
+                const container = document.getElementById('executionsList');
+                
+                if (sessions.length === 0) {
+                    container.innerHTML = '<div class="empty">Nenhuma execução no histórico</div>';
+                    return;
+                }
+                
+                container.innerHTML = sessions.map(s => `
+                    <div class="list-item">
+                        <div class="item-info">
+                            <h4>${s.plan_title || 'Execução'}</h4>
+                            <div class="item-meta">
+                                ${s.session_code} | ${new Date(s.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <span class="item-status ${s.status}">${s.status.toUpperCase()}</span>
+                    </div>
+                `).join('');
+                
+                document.getElementById('statusCount').textContent = `${sessions.length} execuções`;
+            } catch (e) {
+                document.getElementById('executionsList').innerHTML = 
+                    `<div class="empty">Erro: ${e.message}</div>`;
+            }
+        }
+        
+        async function loadFiles() {
+            try {
+                const res = await fetch(`${API}/files`);
+                const data = await res.json();
+                const files = data.files || [];
+                
+                const container = document.getElementById('filesList');
+                
+                if (files.length === 0) {
+                    container.innerHTML = '<div class="empty">Nenhum arquivo encontrado</div>';
+                    return;
+                }
+                
+                container.innerHTML = files.map(f => `
+                    <div class="list-item">
+                        <div class="item-info">
+                            <h4>📄 ${f.name}</h4>
+                            <div class="item-meta">
+                                ${Math.round(f.size / 1024)} KB | ${new Date(f.modified).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <a href="${API}/files/${f.path}" target="_blank" 
+                           style="padding:4px 12px;font-size:11px;background:var(--win-bg);border:2px solid;
+                                  border-color:var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+                                  text-decoration:none;color:inherit;">
+                            Abrir
+                        </a>
+                    </div>
+                `).join('');
+                
+                document.getElementById('statusCount').textContent = `${files.length} arquivos`;
+            } catch (e) {
+                document.getElementById('filesList').innerHTML = 
+                    `<div class="empty">Erro: ${e.message}</div>`;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMissions();
+        });
+    </script>
+</body>
+</html>

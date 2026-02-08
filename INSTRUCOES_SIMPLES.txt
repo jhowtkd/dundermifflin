@@ -1,0 +1,72 @@
+═══════════════════════════════════════════════════════════════
+  🏢 DUNDER MIFFLIN V2 - INSTRUÇÕES SIMPLES
+═══════════════════════════════════════════════════════════════
+
+PASSO 1: ABRIR TERMINAL
+─────────────────────────────────────────────────────────────
+Pressione: Cmd + Espaço
+Digite: terminal
+Pressione: Enter
+
+
+PASSO 2: ENTRAR NA PASTA
+─────────────────────────────────────────────────────────────
+Digite no terminal:
+    cd /Users/jhonatan/Repos/dundermifflin
+
+Pressione: Enter
+
+
+PASSO 3: INICIAR SERVIDOR
+─────────────────────────────────────────────────────────────
+Digite no terminal:
+    python3 run_server.py
+
+Pressione: Enter
+
+Você verá:
+    🏢 DUNDER MIFFLIN V2 - Servidor Iniciado
+    🌐 URL: http://localhost:3003
+    ...
+
+IMPORTANTE: NÃO FECHE ESTA JANELA!
+
+
+PASSO 4: ABRIR NO NAVEGADOR
+─────────────────────────────────────────────────────────────
+Abra seu navegador (Chrome, Safari, Firefox)
+
+Na barra de endereço, digite:
+    http://localhost:3003
+
+Pressione: Enter
+
+
+PRONTO! 🎉
+─────────────────────────────────────────────────────────────
+Você está no Dashboard!
+
+Para começar:
+1. Clique em "SERVIÇOS"
+2. Escolha um serviço (ex: "Post LinkedIn")
+3. Crie um plano
+4. Aprove o plano na aba "PLANOS"
+
+
+PARAR O SERVIDOR
+─────────────────────────────────────────────────────────────
+Na janela do terminal onde o servidor está rodando,
+pressione: Ctrl + C
+
+
+SE DER ERRO "Porta em uso"
+─────────────────────────────────────────────────────────────
+Digite no terminal:
+    lsof -ti:3003 | xargs kill -9
+
+Depois tente iniciar novamente (Passo 3)
+
+
+═══════════════════════════════════════════════════════════════
+  DÚVIDAS? Veja COMO_USAR.md para mais detalhes
+═══════════════════════════════════════════════════════════════
