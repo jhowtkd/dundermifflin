@@ -338,6 +338,53 @@
             display: none;
         }
         
+        /* Agent Details - New styles for description and example */
+        .agent-item .agent-header-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        
+        .agent-item .agent-details {
+            margin-top: 6px;
+            padding: 8px;
+            background: #f5f5f5;
+            border: 1px inset #ccc;
+            font-size: 11px;
+            width: 100%;
+        }
+        
+        .agent-item .agent-dept {
+            font-size: 10px;
+            color: var(--win-blue);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .agent-item .agent-desc {
+            color: #333;
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+        
+        .agent-item .agent-example {
+            color: #2e7d32;
+            font-style: italic;
+            border-left: 2px solid var(--accent);
+            padding-left: 6px;
+            margin-top: 4px;
+        }
+        
+        .agent-item .agent-tag {
+            font-size: 9px;
+            color: var(--win-shadow);
+            font-family: monospace;
+            background: #e0e0e0;
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+        
         /* Star Rating */
         .star-rating {
             display: flex;
@@ -686,7 +733,6 @@
                 <span class="menu-item" onclick="showTab('plans')">Planos</span>
                 <span class="menu-item" onclick="showTab('execution')">Execução</span>
                 <span class="menu-item" onclick="showTab('feedback')">Feedback</span>
-                <span class="menu-item" onclick="window.location.href='agents.html'">🤖 Agentes</span>
                 <span class="menu-item" onclick="window.location.href='index.html'">Dashboard</span>
             </div>
             
@@ -934,6 +980,16 @@
         // Load Available Agents for Selection
         async function loadAvailableAgents() {
             try {
+                // Tenta carregar do arquivo JSON local primeiro (com descrições e exemplos)
+                const jsonRes = await fetch('docs/agents_catalog.json');
+                if (jsonRes.ok) {
+                    const jsonData = await jsonRes.json();
+                    availableAgents = jsonData.agents || [];
+                    renderAgentList();
+                    return;
+                }
+                
+                // Fallback para API
                 const res = await fetch(`${API}/agents`);
                 const data = await res.json();
                 availableAgents = data.agents || [];
@@ -955,14 +1011,22 @@
             
             container.innerHTML = availableAgents.map(agent => {
                 const isSelected = selectedAgents.find(a => a.slug === agent.slug);
+                const deptIcon = agent.department_info?.icon || '📁';
                 return `
                     <div class="agent-item ${isSelected ? 'selected' : ''}" data-slug="${agent.slug}">
-                        <span class="agent-emoji">${agent.avatar_emoji || '🤖'}</span>
-                        <div class="agent-info">
-                            <div class="agent-name">${agent.name}</div>
-                            <div class="agent-role">${agent.role || agent.slug}</div>
+                        <div class="agent-header-row">
+                            <span class="agent-emoji">${agent.avatar_emoji || deptIcon}</span>
+                            <div class="agent-info">
+                                <div class="agent-name">${agent.name}</div>
+                                <div class="agent-tag">${agent.slug}</div>
+                            </div>
+                            <button class="add-btn" onclick="addAgentToSequence('${agent.slug}')" title="Adicionar à sequência">+</button>
                         </div>
-                        <button class="add-btn" onclick="addAgentToSequence('${agent.slug}')" title="Adicionar à sequência">+</button>
+                        <div class="agent-details">
+                            <div class="agent-dept">${deptIcon} ${agent.department_info?.name || agent.department}</div>
+                            <div class="agent-desc">${agent.description ? agent.description.substring(0, 100) + '...' : ''}</div>
+                            <div class="agent-example">💡 ${agent.example || 'Exemplo não disponível'}</div>
+                        </div>
                     </div>
                 `;
             }).join('');
