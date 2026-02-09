@@ -15,7 +15,7 @@ import sqlite3
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # Constantes
 KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
