@@ -1830,12 +1830,6 @@ def synthesize_results():
         return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
-if __name__ == '__main__':
-    port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
-    print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
-    print(f"📊 Ralph Swarm Dashboard: http://localhost:{port}/swarm")
-    app.run(host='0.0.0.0', port=port, debug=False)
-
 # Serve Ralph Swarm Dashboard
 @app.route('/swarm')
 def serve_swarm_dashboard():
@@ -1850,3 +1844,10 @@ def serve_swarm_dashboard():
 def serve_swarm_dashboard_alt():
     """Serve o dashboard do Ralph Swarm (alt route)"""
     return serve_swarm_dashboard()
+
+
+if __name__ == '__main__':
+    port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
+    print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
+    print(f"📊 Ralph Swarm Dashboard: http://localhost:{port}/swarm")
+    app.run(host='0.0.0.0', port=port, debug=False)
