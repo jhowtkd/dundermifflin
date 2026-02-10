@@ -461,6 +461,34 @@ def get_agent_ratings(agent_id):
     })
 
 
+# === ENDPOINTS DE EXECUTION PLANS ===
+
+@app.route('/api/execution-plans/<int:plan_id>')
+def get_execution_plan(plan_id):
+    """Busca execution plan por ID com resultado"""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            SELECT id, plan_code, title, objective, status, 
+                   final_result, created_at, completed_at
+            FROM execution_plans
+            WHERE id = ?
+        """, (plan_id,))
+        
+        row = cur.fetchone()
+        conn.close()
+        
+        if not row:
+            return jsonify({"error": "Execution plan not found"}), 404
+        
+        plan = dict(row)
+        return jsonify(plan)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # === ENDPOINTS DE ARQUIVOS ===
 
 @app.route('/api/files')
@@ -468,17 +496,25 @@ def list_files():
     """Lista todos os arquivos criados pelas missões"""
     try:
         files = []
-        carousels_dir = FILES_BASE / "carousels"
         
-        if carousels_dir.exists():
-            for f in carousels_dir.iterdir():
-                if f.is_file():
-                    files.append({
-                        "name": f.name,
-                        "path": str(f.relative_to(FILES_BASE)),
-                        "size": f.stat().st_size,
-                        "modified": datetime.fromtimestamp(f.stat().st_mtime).isoformat()
-                    })
+        # Pastas a serem listadas
+        folders = ["carousels", "social_plans", "blog_posts", "tiktok_scripts", "repurposed_content"]
+        
+        for folder in folders:
+            folder_dir = FILES_BASE / folder
+            if folder_dir.exists():
+                for f in folder_dir.iterdir():
+                    if f.is_file():
+                        files.append({
+                            "name": f.name,
+                            "path": str(f.relative_to(FILES_BASE)),
+                            "folder": folder,
+                            "size": f.stat().st_size,
+                            "modified": datetime.fromtimestamp(f.stat().st_mtime).isoformat()
+                        })
+        
+        # Ordena por data de modificação (mais recentes primeiro)
+        files.sort(key=lambda x: x["modified"], reverse=True)
         
         return jsonify({"files": files})
     except Exception as e:
@@ -988,6 +1024,180 @@ def serve_static(path):
 
     # Fallback para index.html (SPA-like)
     return send_from_directory(app.static_folder, 'index.html')
+
+
+# ============================================================
+# RALPH LOOP ENDPOINTS
+# ============================================================
+
+@app.route('/api/ralph/loop', methods=['POST'])
+def create_ralph_loop():
+    """Cria um novo Ralph Loop via API"""
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    agent_slug = data.get('agent') or data.get('agent_slug')
+    task = data.get('task') or data.get('task_description')
+    max_iterations = data.get('max_iterations', 20)
+    
+    if not agent_slug or not task:
+        return jsonify({"error": "Missing agent or task"}), 400
+    
+    # Mapear nomes simplificados
+    agent_map = {
+        'dev': 'o-dev',
+        'marketeiro': 'o-marketeiro',
+        'mkt': 'o-marketeiro',
+        'executivo': 'o-executivo',
+        'exec': 'o-executivo'
+    }
+    agent_slug = agent_map.get(agent_slug, agent_slug)
+    
+    try:
+        # Importar e criar loop
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from ralph_loop import create_loop
+        
+        loop_code = create_loop(agent_slug, task, max_iterations)
+        
+        # URLs acessíveis
+        dashboard_url = f"http://100.94.223.52:8888/ralph-dashboard.html?loop={loop_code}"
+        
+        return jsonify({
+            "success": True,
+            "loop_code": loop_code,
+            "agent": agent_slug,
+            "task": task,
+            "status": "running",
+            "dashboard_url": dashboard_url
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ralph/loops/active', methods=['GET'])
+def get_ralph_loops_active():
+    """Retorna loops Ralph atualmente em execução"""
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from ralph_loop import get_active_loops
+        
+        loops = get_active_loops()
+        return jsonify(loops)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ralph/loops/history', methods=['GET'])
+def get_ralph_loops_history():
+    """Retorna histórico de loops completados/falhos"""
+    limit = request.args.get('limit', 50, type=int)
+    
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from ralph_loop import get_loop_history
+        
+        loops = get_loop_history(limit=limit)
+        return jsonify(loops)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ralph/costs/summary', methods=['GET'])
+def get_ralph_costs_summary():
+    """Retorna resumo de custos"""
+    days = request.args.get('days', 30, type=int)
+    
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from ralph_loop import get_cost_summary
+        
+        summary = get_cost_summary(days=days)
+        return jsonify(summary)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ralph/metrics/agents', methods=['GET'])
+def get_ralph_agent_metrics():
+    """Retorna métricas por agente"""
+    days = request.args.get('days', 7, type=int)
+    
+    try:
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from ralph_loop import get_agent_metrics
+        
+        metrics = get_agent_metrics(days=days)
+        return jsonify(metrics)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ralph/notifications', methods=['GET'])
+def get_ralph_notifications():
+    """Retorna notificações pendentes"""
+    notifications_dir = Path(__file__).parent / "loops" / "notifications"
+    
+    if not notifications_dir.exists():
+        return jsonify({"notifications": []})
+    
+    notifications = []
+    
+    for notif_file in notifications_dir.glob("*.json"):
+        try:
+            with open(notif_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            if data.get('status_notification') == 'pending':
+                notifications.append(data)
+                # Marcar como lido
+                data['status_notification'] = 'read'
+                with open(notif_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+        except Exception as e:
+            print(f"Erro ao ler notificação {notif_file}: {e}")
+    
+    notifications.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    return jsonify({"notifications": notifications[:10]})
+
+
+@app.route('/api/ralph/notifications/clear', methods=['POST'])
+def clear_ralph_notifications():
+    """Limpa todas as notificações"""
+    notifications_dir = Path(__file__).parent / "loops" / "notifications"
+    
+    if notifications_dir.exists():
+        for notif_file in notifications_dir.glob("*.json"):
+            try:
+                notif_file.unlink()
+            except Exception as e:
+                print(f"Erro ao remover {notif_file}: {e}")
+    
+    return jsonify({"success": True, "message": "Notificações limpas"})
+
+
+@app.route('/api/ralph/results/<filename>', methods=['GET'])
+def get_ralph_result(filename):
+    """Retorna o conteúdo de um arquivo de resultado"""
+    try:
+        results_dir = Path(__file__).parent / "loops" / "results"
+        file_path = results_dir / filename
+        
+        # Verificar se o arquivo existe e está dentro do diretório de resultados
+        if not file_path.exists() or not str(file_path.resolve()).startswith(str(results_dir.resolve())):
+            return jsonify({"error": "Arquivo não encontrado"}), 404
+        
+        return send_file(file_path, mimetype='text/markdown')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':

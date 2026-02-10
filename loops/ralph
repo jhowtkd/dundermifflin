@@ -1,0 +1,5 @@
+#!/bin/bash
+# Atalho global para Ralph Loop
+# Adicione ao ~/.bashrc: alias ralph='~/.openclaw/workspace/projects/dunder-mifflin/loops/ralph-loop.sh'
+
+~/.openclaw/workspace/projects/dunder-mifflin/loops/ralph-loop.sh "$@"

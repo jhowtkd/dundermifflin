@@ -130,84 +130,78 @@ class DunderMifflinWorkerV2:
             return False
     
     def _call_llm(self, prompt, agent_id="quill"):
-        """Retorna conteúdo mockado baseado no tipo de prompt"""
-        # Detecta tipo de conteúdo pelo prompt
-        prompt_lower = prompt.lower()
-        
-        if "social" in prompt_lower or "instagram" in prompt_lower or "semana" in prompt_lower:
-            # Planejamento completo de social media
-            return json.dumps({
-                "tema_semana": "Biomecânica do Movimento: Entenda seu corpo em ação",
-                "posts": [
-                    {
-                        "dia": "Segunda",
-                        "tipo": "carousel",
-                        "titulo": "O que é Biomecânica? 🤔",
-                        "legenda": "Você sabe como seu corpo se move?\n\nA biomecânica estuda as forças que atuam no corpo humano durante o movimento. É a ciência por trás de cada passo, salto e levantamento.\n\n💡 Nesta semana, vamos descomplicar a biomecânica e mostrar como ela pode melhorar sua performance e prevenir lesões.\n\n👉 Salva esse post para acompanhar a série completa!\n\nQual aspecto do movimento humano você mais se interessa? Comenta aqui! 👇",
-                        "hashtags": ["#Biomecanica", "#MovimentoHumano", "#Fisioterapia", "#Performance"],
-                        "conteudo_visual": "Carrossel com 5 slides: (1) Capa 'O que é Biomecânica?', (2) Definição simples com ícone de corpo humano, (3) Exemplo do dia a dia - caminhada, (4) Benefícios para atletas, (5) CTA 'Segue para mais'",
-                        "hora_postagem": "19:00"
-                    },
-                    {
-                        "dia": "Terça", 
-                        "tipo": "reel",
-                        "titulo": "3 Erros Biomecânicos no Agachamento ⚠️",
-                        "legenda": "Agachar errado pode causar lesões sérias! 🚨\n\nNo vídeo de hoje mostro os 3 erros mais comuns que vejo na academia e como corrigi-los em segundos.\n\n✅ Joelhos cedendo para dentro\n✅ Elevação excessiva dos calcanhares\n✅ Curvatura lombar excessiva\n\nQual desses erros você comete? Me conta! 👇\n\n💾 Salva para revisar antes do próximo treino",
-                        "hashtags": ["#Agachamento", "#Treino", "#Academia", "#Biomecanica"],
-                        "conteudo_visual": "Vídeo curto (30s) mostrando os 3 erros com setas indicativas e depois a forma correta. Split screen comparando erro vs correto.",
-                        "hora_postagem": "12:00"
-                    },
-                    {
-                        "dia": "Quarta",
-                        "tipo": "carousel", 
-                        "titulo": "Cadeia Cinética: Tudo está conectado 🔗",
-                        "legenda": "Dor no ombro? O problema pode estar no quadril! 🧐\n\nO corpo humano é uma cadeia de movimento. Quando um elo falha, toda a corrente sofre.\n\n📊 Neste carrossel você vai entender:\n→ O que é cadeia cinética\n→ Como o pé afeta o joelho\n→ Por que a postura importa\n→ Exercícios para integrar o corpo\n\n🧠 Conhecimento é poder! Quanto mais você entende seu corpo, melhor você treina.\n\nCompartilha com aquele amigo que precisa ver isso! 💪",
-                        "hashtags": ["#CadeiaCinetica", "#CorpoIntegrado", "#Postura", "#Saude"],
-                        "conteudo_visual": "Carrossel educativo com ilustrações mostrando a conexão pé-joelho-quadril-coluna. Setas indicando o fluxo de força.",
-                        "hora_postagem": "19:00"
-                    },
-                    {
-                        "dia": "Quinta",
-                        "tipo": "single",
-                        "titulo": "Pergunte-me qualquer coisa sobre Biomecânica! 💬",
-                        "legenda": "Caixa de perguntas aberta! 📦\n\nQualquer dúvida sobre biomecânica, movimento, lesões ou performance é bem-vinda.\n\n🔥 As melhores perguntas vão virar conteúdo nos próximos dias!\n\nNão seja tímido - pode perguntar sobre:\n• Lesões específicas\n• Exercícios corretos\n• Avaliação postural\n• Performance esportiva\n• Qualquer coisa sobre movimento!\n\nBora interagir? 👇",
-                        "hashtags": ["#PergunteMe", "#FAQ", "#Duvidas", "#Biomecanica"],
-                        "conteudo_visual": "Imagem com fundo gradiente e texto 'Pergunte-me qualquer coisa' centralizado. Ícone de caixa de perguntas.",
-                        "hora_postagem": "15:00"
-                    },
-                    {
-                        "dia": "Sexta",
-                        "tipo": "carousel",
-                        "titulo": "Checklist Biomecânico da Semana ✅",
-                        "legenda": "Resumo da semana + checklist para você aplicar! 📝\n\nDepois de 5 dias aprendendo sobre biomecânica, chegou a hora de colocar em prática.\n\n✅ Meu checklist biomecânico:\n1️⃣ Observo minha postura durante o dia\n2️⃣ Aqueço antes de treinar\n3️⃣ Presto atenção na técnica, não só na carga\n4️⃣ Durmo bem para recuperação\n5️⃣ Escuto meu corpo quando ele fala\n\n💪 Pequenas mudanças criam grandes resultados. Qual dessas você vai começar hoje?\n\n🎯 Comprometa-se nos comentários! 👇",
-                        "hashtags": ["#Checklist", "#Habitos", "#Saude", "#BemEstar"],
-                        "conteudo_visual": "Carrossel com design de checklist. Slide 1: Capa 'Checklist da Semana', Slides 2-6: Cada item do checklist com ícone ilustrativo.",
-                        "hora_postagem": "19:00"
-                    }
-                ],
-                "resumo_estrategia": "Estratégia de conteúdo educativo mixando carrosséis informativos, reel dinâmico e interação direta. Foco em engajamento através de perguntas e CTAs claros. Variação de horários para testar alcance.",
-                "materiais_necessarios": [
-                    "Imagens de corpo humano/anatomia",
-                    "Ícones de exercícios",
-                    "Vídeo do agachamento (stock ou gravado)",
-                    "Templates de carrossel",
-                    "Stickers e elementos gráficos"
-                ]
-            }, ensure_ascii=False)
-        
-        elif "carrossel" in prompt_lower:
-            return json.dumps(_get_mock_carousel_data(), ensure_ascii=False)
-        
-        else:
-            return f"Conteúdo gerado para: {prompt[:100]}...\n\nEste é um conteúdo de exemplo gerado pelo sistema."
+        """Chama LLM via llm_client (Kimi 2.5) com parsing de conteúdo"""
+        try:
+            from llm_client import generate_content
+            
+            logger.info(f"   🤖 Chamando Kimi K2.5 para: {prompt[:50]}...")
+            
+            raw_content = generate_content(prompt, agent_id)
+            
+            if not raw_content or len(raw_content) < 50:
+                logger.error(f"   ❌ Resposta vazia ou muito curta")
+                return "Erro: Resposta do LLM vazia ou muito curta"
+            
+            # Parsing: remove logs do sistema e extrai apenas conteúdo relevante
+            lines = raw_content.split('\n')
+            clean_lines = []
+            skip_patterns = [
+                'Doctor warnings', 'Session store:', 'State dir', 'Hook registry',
+                '◇', '╭', '╮', '╯', '─', '├', '│', '━',
+                'Sessions listed:', 'group agent:', 'id:',
+                '◐', '◑', '◒', '◓', '◔', '◕',
+                'OpenClaw', 'Reminder:', 'Do not return'
+            ]
+            
+            for line in lines:
+                stripped = line.strip()
+                # Pula linhas que são só decoração ou logs
+                if any(p in stripped for p in skip_patterns):
+                    continue
+                if set(stripped).issubset(set('│─┼┤├┌┐└┘┬┴┼═║╔╗╚╝╠╣╦╩╬ ░▒▓█')):
+                    continue
+                if len(stripped) > 0:
+                    clean_lines.append(line)
+            
+            content = '\n'.join(clean_lines).strip()
+            
+            # Se após limpeza ficou muito curto, usa original
+            if len(content) < 100:
+                content = raw_content
+            
+            logger.info(f"   ✅ Resposta recebida ({len(content)} chars limpos de {len(raw_content)} raw)")
+            return content
+                
+        except Exception as e:
+            logger.error(f"   ❌ Erro ao chamar LLM: {e}")
+            return f"Erro na geração: {str(e)[:200]}"
     
-    def _generate_mock_content(self, prompt):
-        """Gera conteúdo mockado quando LLM falha"""
-        if "carrossel" in prompt.lower() or "carousel" in prompt.lower():
-            return json.dumps(_get_mock_carousel_data(), ensure_ascii=False)
-        return f"Conteúdo gerado para: {prompt[:100]}..."
-    
-    def _execute_content_mission(self, mission):
+    def _save_blog_post_file(self, title, content):
+        """Salva post de blog em arquivo Markdown"""
+        blog_dir = STUDIO_DIR / "dunder_mifflin" / "blog_posts"
+        blog_dir.mkdir(parents=True, exist_ok=True)
+        
+        date_str = datetime.now().strftime("%Y%m%d")
+        safe_title = "".join(c if c.isalnum() else "_" for c in title.lower())[:30]
+        filename = f"{date_str}_blog_{safe_title}.md"
+        filepath = blog_dir / filename
+        
+        md_content = f"""# {title}
+
+**Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}
+**Tipo:** Post de Blog
+
+---
+
+{content}
+
+---
+
+*Gerado por Dunder Mifflin 🏢*
+"""
+        filepath.write_text(md_content, encoding="utf-8")
+        logger.info(f"   💾 Blog post salvo: {filepath}")
+        return str(filepath)
         """Executa missão de conteúdo (texto/posts)"""
         logger.info("   📝 Gerando conteúdo com Quill...")
         
@@ -387,6 +381,57 @@ Retorne APENAS o JSON válido:"""
         logger.info(f"   ✅ Pesquisa simulada")
         return result
     
+    def _execute_content_mission(self, mission):
+        """Executa missão de conteúdo (blog posts, artigos)"""
+        logger.info("   📝 Gerando conteúdo de blog...")
+        
+        title = mission.get("title", "")
+        description = mission.get("description", "")
+        agent_slug = mission.get("agent_slug", "content-creator")
+        
+        prompt = f"""Você é um redator especialista em criação de conteúdo para blog.
+
+TAREFA: {title}
+DESCRIÇÃO: {description}
+
+Crie um post de blog COMPLETO e bem formatado em Markdown.
+
+Estrutura obrigatória:
+1. Título principal (#)
+2. Introdução envolvente (2-3 parágrafos)
+3. 3-5 seções principais (##) com conteúdo detalhado
+4. Conclusão com call-to-action
+5. Hashtags relevantes no final
+
+Regras:
+- Tom: profissional mas acessível
+- Parágrafos curtos (3-4 linhas)
+- Use listas, negrito e itálico para destacar
+- Mínimo 500 palavras
+- Conteúdo original e valioso
+
+Retorne APENAS o conteúdo do post, bem formatado em Markdown."""
+        
+        content = self._call_llm(prompt, agent_id=agent_slug)
+        
+        # Salva arquivo
+        try:
+            self._save_blog_post_file(title, content)
+            logger.info(f"   💾 Post de blog salvo")
+        except Exception as e:
+            logger.error(f"   ⚠️ Erro ao salvar: {e}")
+        
+        result = {
+            "type": "blog_post",
+            "title": title,
+            "content": content,
+            "word_count": len(content.split()),
+            "generated_at": datetime.now().isoformat()
+        }
+        
+        logger.info(f"   ✅ Conteúdo gerado: {result['word_count']} palavras")
+        return result
+    
     def _execute_social_mission(self, mission):
         """Executa missão de social media - Gera planejamento completo"""
         logger.info("   📱 Gerando planejamento de social media...")
@@ -496,6 +541,142 @@ REGRAS:
             json.dump(social_plan, f, ensure_ascii=False, indent=2)
         
         logger.info(f"   💾 Arquivo salvo: {filepath}")
+    
+    def _format_content_nicely(self, content: str, content_type: str = "blog") -> str:
+        """Formata conteúdo de forma bonita e profissional"""
+        import re
+        
+        # Remove blocos de JSON/metadata
+        content = re.sub(r'\{[\s\S]*?"status"[\s\S]*?\}', '', content)
+        
+        # Remove linhas de log/sistema
+        lines = content.split('\n')
+        clean_lines = []
+        skip_patterns = [
+            'Doctor warnings', 'Session store:', 'Kind', 'direct agent:', 
+            'group agent:', '◇', '╭', '╮', '╯', '─', '├', '│',
+            'State dir', 'Hook registry', '[BOT]', '[OK]', '[ERRO]',
+            'Arquivos Modificados:', 'files_created', 'agent_slug',
+            '### Arquivos', 'Nenhum arquivo modificado'
+        ]
+        
+        for line in lines:
+            if any(p in line for p in skip_patterns):
+                continue
+            # Remove linhas que são só caracteres de UI
+            if set(line.strip()).issubset(set('│─┼┤├┌┐└┘┬┴┼═║╔╗╚╝╠╣╦╩╬ ░▒▓█')):
+                continue
+            clean_lines.append(line)
+        
+        content = '\n'.join(clean_lines).strip()
+        
+        # Garante que tenha headers apropriados
+        if content_type == "blog" and not content.startswith('#'):
+            content = f"## Conteúdo\n\n{content}"
+        
+        return content
+
+    def _save_blog_post_file(self, title, content):
+        """Salva post de blog em arquivo Markdown formatado bonito"""
+        blog_dir = STUDIO_DIR / "dunder_mifflin" / "blog_posts"
+        blog_dir.mkdir(parents=True, exist_ok=True)
+        
+        date_str = datetime.now().strftime("%Y%m%d")
+        safe_title = "".join(c if c.isalnum() else "_" for c in title.lower())[:30]
+        filename = f"{date_str}_blog_{safe_title}.md"
+        filepath = blog_dir / filename
+        
+        # Formata o conteúdo bonito
+        formatted_content = self._format_content_nicely(content, "blog")
+        
+        md_content = f"""# ✨ {title}
+
+📅 **Gerado em:** {datetime.now().strftime('%d/%m/%Y %H:%M')}  
+📝 **Tipo:** Post de Blog  
+🤖 **Modelo:** Gemini Pro 3
+
+---
+
+{formatted_content}
+
+---
+
+<div align="center">
+
+*Conteúdo gerado automaticamente por Dunder Mifflin* 🏢
+
+</div>
+"""
+        filepath.write_text(md_content, encoding="utf-8")
+        logger.info(f"   💾 Blog post salvo: {filepath}")
+        return str(filepath)
+    
+    def _save_tiktok_scripts_file(self, title, scripts):
+        """Salva roteiros TikTok em arquivo Markdown formatado"""
+        tiktok_dir = STUDIO_DIR / "dunder_mifflin" / "tiktok_scripts"
+        tiktok_dir.mkdir(parents=True, exist_ok=True)
+        
+        date_str = datetime.now().strftime("%Y%m%d")
+        safe_title = "".join(c if c.isalnum() else "_" for c in title.lower())[:30]
+        filename = f"{date_str}_tiktok_{safe_title}.md"
+        filepath = tiktok_dir / filename
+        
+        # Formata o conteúdo bonito
+        formatted_scripts = self._format_content_nicely(scripts, "tiktok")
+        
+        md_content = f"""# 🎬 {title}
+
+📅 **Gerado em:** {datetime.now().strftime('%d/%m/%Y %H:%M')}  
+🎭 **Tipo:** Roteiros para TikTok  
+🤖 **Modelo:** Gemini Pro 3
+
+---
+
+{formatted_scripts}
+
+---
+
+<div align="center">
+
+*Roteiros gerados automaticamente por Dunder Mifflin* 🏢
+
+</div>
+"""
+        filepath.write_text(md_content, encoding="utf-8")
+        logger.info(f"   💾 Roteiros TikTok salvos: {filepath}")
+        return str(filepath)
+    
+    def _save_repurposed_content_file(self, title, contents_dict):
+        """Salva conteúdo repurposed (vários formatos) em arquivo Markdown"""
+        repurpose_dir = STUDIO_DIR / "dunder_mifflin" / "repurposed_content"
+        repurpose_dir.mkdir(parents=True, exist_ok=True)
+        
+        date_str = datetime.now().strftime("%Y%m%d")
+        safe_title = "".join(c if c.isalnum() else "_" for c in title.lower())[:30]
+        filename = f"{date_str}_repurpose_{safe_title}.md"
+        filepath = repurpose_dir / filename
+        
+        md_content = f"""# {title}
+
+**Data:** {datetime.now().strftime('%d/%m/%Y %H:%M')}
+**Tipo:** Conteúdo Repurposed (Múltiplos Formatos)
+
+---
+
+"""
+        for format_name, content in contents_dict.items():
+            md_content += f"""## {format_name}
+
+{content}
+
+---
+
+"""
+        
+        md_content += "\n*Gerado por Dunder Mifflin 🏢*\n"
+        filepath.write_text(md_content, encoding="utf-8")
+        logger.info(f"   💾 Conteúdo repurposed salvo: {filepath}")
+        return str(filepath)
     
     def _execute_general_mission(self, mission):
         """Executa missão geral"""
@@ -831,7 +1012,7 @@ REGRAS:
             logger.error(f"   ⚠️ Erro ao buscar projeto: {e}")
             return None
     
-    def _wait_for_task_result(self, task_code: str, timeout: int = 300) -> str:
+    def _wait_for_task_result(self, task_code: str, timeout: int = 900) -> str:
         """Aguarda resultado da tarefa (polling)"""
         start_time = time.time()
         check_interval = 2  # segundos
@@ -880,6 +1061,29 @@ REGRAS:
         
         # 2. Aguarda resultado
         output = self._wait_for_task_result(task_code)
+        
+        # 3. Salva arquivo baseado no tipo de agente
+        try:
+            agent_slug = step.get('agent_slug', '')
+            step_title = step.get('title', 'Untitled')
+            plan_title = session.plan.get('title', 'Plano')
+            
+            if 'copywriter' in agent_slug or 'blog' in step_title.lower():
+                self._save_blog_post_file(f"{plan_title} - {step_title}", output)
+            elif 'twitter' in agent_slug or 'thread' in step_title.lower():
+                self._save_tiktok_scripts_file(f"{plan_title} - Twitter Thread", output)
+            elif 'linkedin' in agent_slug:
+                self._save_blog_post_file(f"{plan_title} - LinkedIn Post", output)
+            elif 'instagram' in agent_slug or 'story' in step_title.lower():
+                self._save_tiktok_scripts_file(f"{plan_title} - Instagram Stories", output)
+            elif 'tiktok' in agent_slug or 'content-strategist' in agent_slug:
+                self._save_tiktok_scripts_file(f"{plan_title} - TikTok Scripts", output)
+            elif 'repurpose' in plan_title.lower():
+                self._save_repurposed_content_file(plan_title, {step_title: output})
+            
+            logger.info(f"   💾 Arquivo salvo para: {step_title}")
+        except Exception as e:
+            logger.error(f"   ⚠️ Erro ao salvar arquivo: {e}")
         
         return output
     

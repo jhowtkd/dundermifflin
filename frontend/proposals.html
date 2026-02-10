@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dunder Mifflin - Criar Proposta</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --win-bg: #c0c0c0;
+            --win-highlight: #ffffff;
+            --win-shadow: #808080;
+            --win-dark: #404040;
+            --win-blue: #000080;
+            --win-blue-light: #1084d0;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #008080;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .mono { font-family: 'VT323', monospace; font-size: 18px; }
+        
+        .window {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .window-title {
+            background: linear-gradient(90deg, var(--win-blue), var(--win-blue-light));
+            color: white;
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .window-title h1 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .window-btn {
+            width: 20px;
+            height: 18px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #000;
+        }
+        
+        .window-content {
+            padding: 16px;
+        }
+        
+        .menu-bar {
+            display: flex;
+            gap: 16px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--win-shadow);
+            margin-bottom: 16px;
+        }
+        
+        .menu-bar a {
+            color: #000;
+            text-decoration: none;
+            font-size: 12px;
+            padding: 2px 8px;
+        }
+        
+        .menu-bar a:hover {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        /* Form Section */
+        .form-section {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .form-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--win-blue);
+            border-bottom: 1px solid var(--win-shadow);
+            padding-bottom: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .form-label .required {
+            color: #dc3545;
+        }
+        
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 8px 10px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 13px;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            background: #fff;
+        }
+        
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--win-blue);
+        }
+        
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        /* Priority Slider */
+        .priority-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .priority-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            background: var(--win-bg);
+            border: 1px solid var(--win-shadow);
+        }
+        
+        .priority-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--win-blue);
+            border: 2px solid var(--win-highlight);
+            cursor: pointer;
+        }
+        
+        .priority-value {
+            min-width: 30px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--win-blue);
+        }
+        
+        /* Agent Cards */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 8px;
+            background: #f5f5f5;
+            border: 1px solid var(--win-shadow);
+        }
+        
+        .agent-card {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        
+        .agent-card:hover {
+            background: #d4d4d4;
+        }
+        
+        .agent-card.selected {
+            background: var(--win-blue);
+            color: white;
+            border-color: var(--win-blue);
+        }
+        
+        .agent-card.selected .agent-dept {
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        .agent-dept {
+            font-size: 11px;
+            color: var(--win-shadow);
+        }
+        
+        /* Buttons */
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding-top: 16px;
+            border-top: 1px solid var(--win-shadow);
+        }
+        
+        .btn {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            padding: 10px 24px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            background: #d4d4d4;
+        }
+        
+        .btn:active {
+            border-color: var(--win-dark) var(--win-highlight) var(--win-highlight) var(--win-dark);
+        }
+        
+        .btn-primary {
+            background: var(--win-blue);
+            color: white;
+            border-color: var(--win-blue-light) var(--win-blue) var(--win-blue) var(--win-blue-light);
+        }
+        
+        .btn-primary:hover {
+            background: #000060;
+        }
+        
+        /* Pending Proposals */
+        .pending-section {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            margin-top: 16px;
+        }
+        
+        .pending-header {
+            background: var(--win-bg);
+            padding: 12px;
+            font-weight: 600;
+            font-size: 13px;
+            border-bottom: 1px solid var(--win-shadow);
+        }
+        
+        .pending-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .proposal-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        
+        .proposal-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .proposal-info {
+            flex: 1;
+        }
+        
+        .proposal-title {
+            font-weight: 600;
+        }
+        
+        .proposal-meta {
+            font-size: 11px;
+            color: var(--win-shadow);
+        }
+        
+        .proposal-priority {
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--win-bg);
+        }
+        
+        .proposal-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 11px;
+        }
+        
+        .btn-approve {
+            background: #28a745;
+            color: white;
+            border-color: #34ce57 #1e7e34 #1e7e34 #34ce57;
+        }
+        
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+            border-color: #e4606d #bd2130 #bd2130 #e4606d;
+        }
+        
+        /* Alert */
+        .alert {
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--win-shadow);
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--win-shadow);
+            font-size: 13px;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .agents-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="window-title">
+            <h1>📝 CRIAR PROPOSTA</h1>
+            <div class="window-controls">
+                <a href="index.html" class="window-btn" title="Voltar">←</a>
+                <button class="window-btn">_</button>
+                <button class="window-btn">□</button>
+                <button class="window-btn">×</button>
+            </div>
+        </div>
+        
+        <div class="window-content">
+            <!-- Menu -->
+            <div class="menu-bar">
+                <a href="index.html">🏠 Início</a>
+                <a href="missions.html">📋 Missões</a>
+                <a href="services.html">⚙️ Serviços</a>
+                <a href="agents.html">🤖 Agentes</a>
+            </div>
+            
+            <!-- Alert -->
+            <div id="alert" class="alert"></div>
+            
+            <!-- Form -->
+            <form id="proposalForm" class="form-section">
+                <div class="form-title">✨ NOVA PROPOSTA DE MISSÃO</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">
+                            Título <span class="required">*</span>
+                        </label>
+                        <input type="text" id="title" class="form-input" placeholder="Ex: Criar post sobre IA" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Missão</label>
+                        <select id="missionType" class="form-select">
+                            <option value="general">Geral</option>
+                            <option value="social">Social Media</option>
+                            <option value="carousel">Carrossel</option>
+                            <option value="content">Conteúdo</option>
+                            <option value="research">Pesquisa</option>
+                            <option value="development">Desenvolvimento</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Prioridade</label>
+                    <div class="priority-container">
+                        <span>Baixa</span>
+                        <input type="range" id="priority" class="priority-slider" min="1" max="10" value="5">
+                        <span>Alta</span>
+                        <span class="priority-value" id="priorityValue">5</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Descrição / Contexto</label>
+                    <textarea id="description" class="form-textarea" placeholder="Descreva o que precisa ser feito, contexto, requisitos..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        Agente Responsável <span class="required">*</span>
+                    </label>
+                    <div id="agentsLoading" class="loading">Carregando agentes...</div>
+                    <div id="agentsGrid" class="agents-grid" style="display: none;"></div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="resetForm()">
+                        🗑️ Limpar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        🚀 Criar Proposta
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Pending Proposals -->
+            <div class="pending-section">
+                <div class="pending-header">
+                    ⏳ PROPOSTAS PENDENTES
+                </div>
+                <div id="pendingList" class="pending-list">
+                    <div class="loading">Carregando propostas...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API = 'http://100.94.223.52:3003/api';
+        let agents = [];
+        let selectedAgent = null;
+        
+        // Priority slider
+        document.getElementById('priority').addEventListener('input', (e) => {
+            document.getElementById('priorityValue').textContent = e.target.value;
+        });
+        
+        // Load agents
+        async function loadAgents() {
+            try {
+                const response = await fetch(`${API}/agents`);
+                const data = await response.json();
+                agents = data.agents || [];
+                
+                renderAgents();
+                document.getElementById('agentsLoading').style.display = 'none';
+                document.getElementById('agentsGrid').style.display = 'grid';
+            } catch (e) {
+                document.getElementById('agentsLoading').textContent = 'Erro ao carregar agentes';
+            }
+        }
+        
+        function renderAgents() {
+            const grid = document.getElementById('agentsGrid');
+            grid.innerHTML = agents.map(agent => `
+                <div class="agent-card" onclick="selectAgent(${agent.id}, this)" data-id="${agent.id}">
+                    <div class="agent-name">${agent.name || agent.slug}</div>
+                    <div class="agent-dept">${agent.department_name || agent.department || 'Geral'}</div>
+                </div>
+            `).join('');
+        }
+        
+        function selectAgent(id, element) {
+            selectedAgent = id;
+            document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+        
+        // Form submit
+        document.getElementById('proposalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!selectedAgent) {
+                showAlert('Selecione um agente responsável', 'error');
+                return;
+            }
+            
+            const data = {
+                agentId: selectedAgent,
+                title: document.getElementById('title').value,
+                missionType: document.getElementById('missionType').value,
+                priority: parseInt(document.getElementById('priority').value),
+                description: document.getElementById('description').value
+            };
+            
+            try {
+                const response = await fetch(`${API}/proposals`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(`Proposta ${result.code} criada com sucesso!`, 'success');
+                    resetForm();
+                    loadPendingProposals();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Erro ao criar proposta', 'error');
+                }
+            } catch (e) {
+                showAlert('Erro de conexão: ' + e.message, 'error');
+            }
+        });
+        
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+        
+        function resetForm() {
+            document.getElementById('proposalForm').reset();
+            document.getElementById('priorityValue').textContent = '5';
+            selectedAgent = null;
+            document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('selected'));
+        }
+        
+        // Load pending proposals
+        async function loadPendingProposals() {
+            try {
+                const response = await fetch(`${API}/proposals?status=pending`);
+                const data = await response.json();
+                const proposals = data.proposals || [];
+                
+                const list = document.getElementById('pendingList');
+                
+                if (proposals.length === 0) {
+                    list.innerHTML = '<div class="empty">Nenhuma proposta pendente</div>';
+                    return;
+                }
+                
+                list.innerHTML = proposals.map(p => `
+                    <div class="proposal-item" data-id="${p.id}">
+                        <div class="proposal-info">
+                            <div class="proposal-title">${p.title}</div>
+                            <div class="proposal-meta">
+                                ${p.proposal_code || p.code} • ${p.agent_name || 'Agente'} • ${p.mission_type || 'Geral'}
+                            </div>
+                        </div>
+                        <span class="proposal-priority">P${p.priority}</span>
+                        <div class="proposal-actions">
+                            <button class="btn btn-small btn-approve" onclick="approveProposal(${p.id})">✓</button>
+                            <button class="btn btn-small btn-reject" onclick="rejectProposal(${p.id})">✕</button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (e) {
+                document.getElementById('pendingList').innerHTML = `
+                    <div class="empty">Erro ao carregar: ${e.message}</div>
+                `;
+            }
+        }
+        
+        async function approveProposal(id) {
+            try {
+                const response = await fetch(`${API}/proposals/${id}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes: 'Aprovado via interface' })
+                });
+                
+                if (response.ok) {
+                    showAlert('Proposta aprovada!', 'success');
+                    loadPendingProposals();
+                } else {
+                    showAlert('Erro ao aprovar', 'error');
+                }
+            } catch (e) {
+                showAlert('Erro: ' + e.message, 'error');
+            }
+        }
+        
+        async function rejectProposal(id) {
+            try {
+                const response = await fetch(`${API}/proposals/${id}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: 'Rejeitado via interface' })
+                });
+                
+                if (response.ok) {
+                    showAlert('Proposta rejeitada', 'success');
+                    loadPendingProposals();
+                } else {
+                    showAlert('Erro ao rejeitar', 'error');
+                }
+            } catch (e) {
+                showAlert('Erro: ' + e.message, 'error');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAgents();
+            loadPendingProposals();
+        });
+    </script>
+</body>
+</html>

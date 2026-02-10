@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ralph Loop Dashboard - Dunder Mifflin</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 2rem;
+            border-bottom: 1px solid #333;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            color: #888;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* Cards de métricas */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .metric-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: #444;
+        }
+        
+        .metric-card.active {
+            border-color: #00d4ff;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0d1b2a 100%);
+        }
+        
+        .metric-card.success {
+            border-color: #00ff88;
+        }
+        
+        .metric-card.warning {
+            border-color: #ffaa00;
+        }
+        
+        .metric-label {
+            color: #888;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        
+        .metric-change {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        
+        .metric-change.positive {
+            color: #00ff88;
+        }
+        
+        .metric-change.negative {
+            color: #ff4444;
+        }
+        
+        /* Seções */
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .section-content {
+            padding: 1.5rem;
+        }
+        
+        /* Tabela */
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            text-align: left;
+            padding: 1rem;
+            font-weight: 600;
+            color: #888;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #333;
+        }
+        
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #222;
+            vertical-align: top;
+        }
+        
+        tr:hover {
+            background: #222;
+        }
+        
+        /* Status badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .badge.running {
+            background: rgba(0, 212, 255, 0.15);
+            color: #00d4ff;
+        }
+        
+        .badge.completed {
+            background: rgba(0, 255, 136, 0.15);
+            color: #00ff88;
+        }
+        
+        .badge.failed {
+            background: rgba(255, 68, 68, 0.15);
+            color: #ff4444;
+        }
+        
+        .badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        
+        .badge.running::before {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* Agente tags */
+        .agent-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .agent-tag.dev {
+            background: rgba(123, 44, 191, 0.2);
+            color: #a855f7;
+        }
+        
+        .agent-tag.marketeiro {
+            background: rgba(236, 72, 153, 0.2);
+            color: #ec4899;
+        }
+        
+        .agent-tag.executivo {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+        
+        /* Barra de progresso */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            transition: width 0.3s;
+        }
+        
+        /* Gráfico simples */
+        .chart-container {
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            padding: 1rem 0;
+        }
+        
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(180deg, #00d4ff, #7b2cbf);
+            border-radius: 4px 4px 0 0;
+            min-height: 20px;
+            transition: opacity 0.2s;
+            position: relative;
+        }
+        
+        .chart-bar:hover {
+            opacity: 0.8;
+        }
+        
+        .chart-bar::after {
+            content: attr(data-value);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #888;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .chart-bar:hover::after {
+            opacity: 1;
+        }
+        
+        /* Botões */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            color: #fff;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #333;
+            color: #fff;
+        }
+        
+        .btn-secondary:hover {
+            background: #444;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Código de loop */
+        .loop-code {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.875rem;
+            color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        /* Custo */
+        .cost-value {
+            font-family: 'Monaco', 'Consolas', monospace;
+            color: #00ff88;
+            font-weight: 600;
+        }
+        
+        /* Refresh indicator */
+        .refresh-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #666;
+        }
+        
+        .refresh-indicator.spinning::before {
+            content: '↻';
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 1px;
+        }
+        
+        .tab {
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            color: #888;
+        }
+        
+        .tab:hover {
+            color: #fff;
+        }
+        
+        .tab.active {
+            color: #00d4ff;
+            border-bottom-color: #00d4ff;
+        }
+        
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            table {
+                font-size: 0.875rem;
+            }
+            
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🔄 Ralph Loop Dashboard</h1>
+            <p>Monitoramento de loops iterativos e custos de API</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Métricas Principais -->
+        <div class="metrics-grid">
+            <div class="metric-card active">
+                <div class="metric-label">🔄 Loops Ativos</div>
+                <div class="metric-value" id="active-loops">0</div>
+                <div class="metric-change">Em execução agora</div>
+            </div>
+            
+            <div class="metric-card success">
+                <div class="metric-label">✅ Completados Hoje</div>
+                <div class="metric-value" id="completed-today">0</div>
+                <div class="metric-change positive">Taxa de sucesso: <span id="success-rate">0%</span></div>
+            </div>
+            
+            <div class="metric-card warning">
+                <div class="metric-label">💰 Custo Total (7 dias)</div>
+                <div class="metric-value">$<span id="total-cost">0.00</span></div>
+                <div class="metric-change" id="cost-trend">Este período</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-label">🤖 Total de Iterações</div>
+                <div class="metric-value" id="total-iterations">0</div>
+                <div class="metric-change">Média: <span id="avg-iterations">0</span> por loop</div>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" data-tab="active">🔄 Ativos</div>
+            <div class="tab" data-tab="history">📜 Histórico</div>
+            <div class="tab" data-tab="agents">🤖 Por Agente</div>
+            <div class="tab" data-tab="costs">💰 Custos</div>
+        </div>
+        
+        <!-- Loops Ativos -->
+        <div id="tab-active" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">
+                        🔄 Loops em Execução
+                        <span class="refresh-indicator" id="refresh-active">↻ Atualizando...</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshData()">🔄 Atualizar</button>
+                </div>
+                <div class="section-content">
+                    <div class="table-container">
+                        <table id="active-table">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Agente</th>
+                                    <th>Tarefa</th>
+                                    <th>Iteração</th>
+                                    <th>Progresso</th>
+                                    <th>Início</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="empty-state">
+                                        <div class="empty-state-icon">🔄</div>
+                                        <p>Nenhum loop ativo no momento</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Histórico -->
+        <div id="tab-history" class="tab-content" style="display: none;">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">📜 Histórico de Loops</div>
+                    <div>
+                        <button class="btn btn-secondary">⬇️ Exportar CSV</button>
+                    </div>
+                </div>
+                <div class="section-content">
+                    <div class="table-container">
+                        <table id="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Agente</th>
+                                    <th>Tarefa</th>
+                                    <th>Status</th>
+                                    <th>Iterações</th>
+                                    <th>Custo</th>
+                                    <th>Duração</th>
+                                    <th>Arquivo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="7" class="empty-state">
+                                        <div class="empty-state-icon">📭</div>
+                                        <p>Nenhum loop no histórico</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Por Agente -->
+        <div id="tab-agents" class="tab-content" style="display: none;">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">🤖 Métricas por Agente</div>
+                </div>
+                <div class="section-content">
+                    <div class="table-container">
+                        <table id="agents-table">
+                            <thead>
+                                <tr>
+                                    <th>Agente</th>
+                                    <th>Loops</th>
+                                    <th>Completados</th>
+                                    <th>Falhas</th>
+                                    <th>Taxa Sucesso</th>
+                                    <th>Custo Total</th>
+                                    <th>Custo Médio</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="7" class="empty-state">
+                                        <div class="empty-state-icon">🤖</div>
+                                        <p>Sem dados de agentes</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Custos -->
+        <div id="tab-costs" class="tab-content" style="display: none;">
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">💰 Análise de Custos</div>
+                </div>
+                <div class="section-content">
+                    <div class="chart-container" id="cost-chart">
+                        <div class="chart-bar" style="height: 20%" data-value="$0.50"></div>
+                        <div class="chart-bar" style="height: 35%" data-value="$0.80"></div>
+                        <div class="chart-bar" style="height: 50%" data-value="$1.20"></div>
+                        <div class="chart-bar" style="height: 45%" data-value="$1.10"></div>
+                        <div class="chart-bar" style="height: 60%" data-value="$1.50"></div>
+                        <div class="chart-bar" style="height: 75%" data-value="$2.00"></div>
+                        <div class="chart-bar" style="height: 90%" data-value="$2.50"></div>
+                    </div>
+                    <p style="text-align: center; color: #666; margin-top: 1rem;">
+                        Custo diário nos últimos 7 dias
+                    </p>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-title">📊 Estimativas de Custo</div>
+                </div>
+                <div class="section-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Iterações</th>
+                                    <th>Tokens Estimados</th>
+                                    <th>Custo Aproximado (Kimi K2)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>5</td>
+                                    <td>10K in + 5K out</td>
+                                    <td class="cost-value">~$0.025</td>
+                                </tr>
+                                <tr>
+                                    <td>10</td>
+                                    <td>20K in + 10K out</td>
+                                    <td class="cost-value">~$0.050</td>
+                                </tr>
+                                <tr>
+                                    <td>20</td>
+                                    <td>40K in + 20K out</td>
+                                    <td class="cost-value">~$0.100</td>
+                                </tr>
+                                <tr>
+                                    <td>30</td>
+                                    <td>60K in + 30K out</td>
+                                    <td class="cost-value">~$0.150</td>
+                                </tr>
+                                <tr>
+                                    <td>50</td>
+                                    <td>100K in + 50K out</td>
+                                    <td class="cost-value">~$0.250</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p style="margin-top: 1rem; color: #666; font-size: 0.875rem;">
+                        💡 Valores são estimativas baseadas em ~2K tokens in + 1K tokens out por iteração.
+                        Custo real depende do tamanho dos prompts e respostas.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Suprimir erros de extensões do Chrome
+        window.addEventListener("error", function(e) {
+            if (e && e.message && e.message.includes("message channel closed")) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        window.addEventListener("unhandledrejection", function(e) {
+            if (e && e.reason && e.reason.message && e.reason.message.includes("message channel closed")) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // API endpoint
+        // Tailscale IP: 100.94.223.52
+        const API_BASE = window.location.hostname.includes('100.94') 
+            ? 'http://100.94.223.52:3003/api'
+            : 'http://clawd-b450mhp:3003/api';
+        
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+                
+                tab.classList.add('active');
+                document.getElementById(`tab-${tab.dataset.tab}`).style.display = 'block';
+                
+                // Carregar dados específicos da tab
+                if (tab.dataset.tab === 'active') loadActiveLoops();
+                if (tab.dataset.tab === 'history') loadHistory();
+                if (tab.dataset.tab === 'agents') loadAgents();
+                if (tab.dataset.tab === 'costs') loadCosts();
+            });
+        });
+        
+        // Carregar loops ativos
+        async function loadActiveLoops() {
+            const indicator = document.getElementById('refresh-active');
+            indicator.classList.add('spinning');
+            
+            try {
+                const response = await fetch(`${API_BASE}/ralph/loops/active`);
+                const data = await response.json();
+                
+                const tbody = document.querySelector('#active-table tbody');
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <div class="empty-state-icon">🔄</div>
+                                <p>Nenhum loop ativo no momento</p>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = data.map(loop => `
+                        <tr>
+                            <td><span class="loop-code">${loop.loop_code}</span></td>
+                            <td><span class="agent-tag ${loop.agent_slug.replace('o-', '')}">${getAgentName(loop.agent_slug)}</span></td>
+                            <td>${loop.task_description.substring(0, 50)}...</td>
+                            <td>${loop.current_iteration} / ${loop.max_iterations}</td>
+                            <td>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${(loop.current_iteration / loop.max_iterations) * 100}%"></div>
+                                </div>
+                            </td>
+                            <td>${formatTime(loop.started_at)}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+                document.getElementById('active-loops').textContent = data.length;
+            } catch (err) {
+                console.error('Erro ao carregar loops ativos:', err);
+            }
+            
+            indicator.classList.remove('spinning');
+        }
+        
+        // Carregar histórico
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/ralph/loops/history?limit=50`);
+                const data = await response.json();
+                
+                const tbody = document.querySelector('#history-table tbody');
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <p>Nenhum loop no histórico</p>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = data.map(loop => `
+                        <tr>
+                            <td><span class="loop-code">${loop.loop_code}</span></td>
+                            <td><span class="agent-tag ${loop.agent_slug.replace('o-', '')}">${getAgentName(loop.agent_slug)}</span></td>
+                            <td>${loop.task_description.substring(0, 50)}...</td>
+                            <td><span class="badge ${loop.status}">${loop.status}</span></td>
+                            <td>${loop.current_iteration}</td>
+                            <td class="cost-value">$${(loop.total_cost_usd || 0).toFixed(4)}</td>
+                            <td>${formatDuration(loop.started_at, loop.completed_at)}</td>
+                            <td>${loop.result_path ? `<a href="#" onclick="viewResult('${loop.loop_code}', '${loop.result_path}'); return false;" style="color: #00d4ff; text-decoration: none;">📄 Ver</a>` : '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Erro ao carregar histórico:', err);
+            }
+        }
+        
+        // Carregar métricas por agente
+        async function loadAgents() {
+            try {
+                const response = await fetch(`${API_BASE}/ralph/metrics/agents?days=7`);
+                const data = await response.json();
+                
+                const tbody = document.querySelector('#agents-table tbody');
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <div class="empty-state-icon">🤖</div>
+                                <p>Sem dados de agentes</p>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = data.map(agent => `
+                        <tr>
+                            <td><span class="agent-tag ${agent.agent_slug.replace('o-', '')}">${getAgentName(agent.agent_slug)}</span></td>
+                            <td>${agent.total_started || 0}</td>
+                            <td>${agent.total_completed || 0}</td>
+                            <td>${agent.total_failed || 0}</td>
+                            <td>${((agent.avg_success_rate || 0) * 100).toFixed(1)}%</td>
+                            <td class="cost-value">$${(agent.total_cost || 0).toFixed(4)}</td>
+                            <td class="cost-value">$${(agent.avg_cost_per_loop || 0).toFixed(4)}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Erro ao carregar agentes:', err);
+            }
+        }
+        
+        // Carregar custos
+        async function loadCosts() {
+            try {
+                const response = await fetch(`${API_BASE}/ralph/costs/summary?days=7`);
+                const data = await response.json();
+                
+                document.getElementById('total-cost').textContent = (data.total_cost_usd || 0).toFixed(4);
+                document.getElementById('total-iterations').textContent = data.total_iterations || 0;
+                document.getElementById('avg-iterations').textContent = data.avg_iterations || 0;
+                document.getElementById('completed-today').textContent = data.completed || 0;
+                document.getElementById('success-rate').textContent = ((data.success_rate || 0) * 100).toFixed(1) + '%';
+            } catch (err) {
+                console.error('Erro ao carregar custos:', err);
+            }
+        }
+        
+        // Helpers
+        function getAgentName(slug) {
+            const names = {
+                'o-dev': 'O Dev',
+                'o-marketeiro': 'O Marketeiro',
+                'o-executivo': 'O Executivo'
+            };
+            return names[slug] || slug;
+        }
+
+        // Ver resultado do loop
+        async function viewResult(loopCode, resultPath) {
+            if (!resultPath) {
+                alert('Nenhum arquivo de resultado disponível');
+                return;
+            }
+            
+            // Extrair apenas o nome do arquivo do path
+            const fileName = resultPath.split('/').pop();
+            const url = `${API_BASE}/ralph/results/${fileName}`;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Arquivo não encontrado');
+                
+                const content = await response.text();
+                
+                // Abrir modal com o conteúdo
+                const modal = document.createElement('div');
+                modal.id = 'result-modal';
+                modal.innerHTML = `
+                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 2rem;">
+                        <div style="background: #1a1a1a; border: 1px solid #333; border-radius: 12px; max-width: 900px; width: 100%; max-height: 80vh; overflow: auto; position: relative;">
+                            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #1a1a1a;">
+                                <h3 style="margin: 0; color: #fff;">📄 Resultado: ${loopCode}</h3>
+                                <button onclick="closeResultModal()" style="background: transparent; border: none; color: #888; font-size: 1.5rem; cursor: pointer;">×</button>
+                            </div>
+                            <div style="padding: 1.5rem;">
+                                <pre style="background: #0f0f0f; padding: 1rem; border-radius: 8px; overflow-x: auto; color: #e0e0e0; font-family: monospace; white-space: pre-wrap;">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                            </div>
+                            <div style="padding: 1rem 1.5rem; border-top: 1px solid #333; display: flex; gap: 1rem; justify-content: flex-end;">
+                                <a href="${url}" download style="background: #00d4ff; color: #000; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; font-weight: 600;">⬇️ Baixar</a>
+                                <button onclick="closeResultModal()" style="background: #333; color: #fff; padding: 0.5rem 1rem; border-radius: 6px; border: none; cursor: pointer;">Fechar</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            } catch (err) {
+                alert('Erro ao carregar resultado: ' + err.message);
+            }
+        }
+
+        function closeResultModal() {
+            const modal = document.getElementById('result-modal');
+            if (modal) modal.remove();
+        }
+        
+        function formatTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function formatDuration(start, end) {
+            if (!start || !end) return '-';
+            const diff = new Date(end) - new Date(start);
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            return `${mins}m ${secs}s`;
+        }
+        
+        function refreshData() {
+            loadActiveLoops();
+            loadHistory();
+            loadAgents();
+            loadCosts();
+        }
+        
+        // Auto-refresh a cada 30 segundos
+        setInterval(refreshData, 30000);
+        
+        // Carregar dados iniciais
+        loadActiveLoops();
+        loadCosts();
+    </script>
+</body>
+</html>
+
+<script>
+// Notificações de Loops Completados
+let notificationsCheckInterval;
+
+function checkNotifications() {
+    fetch('http://clawd-b450mhp:3003/api/ralph/notifications')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('notifications-container');
+            const list = document.getElementById('notifications-list');
+            
+            if (data.notifications && data.notifications.length > 0) {
+                container.style.display = 'block';
+                list.innerHTML = data.notifications.map(n => `
+                    <div style="padding: 1rem; background: #1a1a1a; border-radius: 8px; margin-bottom: 0.75rem; border-left: 3px solid \${n.status === 'completed' ? '#00ff88' : '#ff4444'};">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                            <div>
+                                <strong style="color: \${n.status === 'completed' ? '#00ff88' : '#ff4444'};">
+                                    \${n.status_icon} \${n.status_text}
+                                </strong>
+                                <span style="color: #888; margin-left: 0.5rem; font-size: 0.875rem;">
+                                    \${n.agent}
+                                </span>
+                            </div>
+                            <span style="color: #666; font-size: 0.75rem;">\${formatTimeAgo(n.timestamp)}</span>
+                        </div>
+                        <div style="color: #ccc; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                            \${n.task.substring(0, 80)}\${n.task.length > 80 ? '...' : ''}
+                        </div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #888;">
+                            <span>🔄 \${n.iterations} iterações</span>
+                            <span>⏱️ \${n.duration}</span>
+                            <span style="color: #00ff88;">💰 $\${n.cost.toFixed(4)}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.style.display = 'none';
+            }
+        })
+        .catch(err => console.log('Erro ao carregar notificações:', err));
+}
+
+function clearNotifications() {
+    fetch('http://clawd-b450mhp:3003/api/ralph/notifications/clear', { method: 'POST' })
+        .then(() => {
+            document.getElementById('notifications-container').style.display = 'none';
+        });
+}
+
+function formatTimeAgo(timestamp) {
+    const diff = (new Date() - new Date(timestamp)) / 1000;
+    if (diff < 60) return 'agora';
+    if (diff < 3600) return Math.floor(diff / 60) + 'min atrás';
+    return Math.floor(diff / 3600) + 'h atrás';
+}
+
+// Verificar notificações a cada 10 segundos
+notificationsCheckInterval = setInterval(checkNotifications, 10000);
+checkNotifications(); // Verificar imediatamente
+</script>

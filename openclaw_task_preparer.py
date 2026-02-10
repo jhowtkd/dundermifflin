@@ -174,7 +174,7 @@ def execute_task(task: dict) -> dict:
         "agent_slug": agent_slug,
         "message": full_task,
         "model": "kimi-coding/k2p5",
-        "timeout_seconds": 300
+        "timeout_seconds": 900
     }
 
 def main():

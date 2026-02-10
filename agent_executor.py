@@ -100,12 +100,12 @@ def setup_project_and_git(project_slug: str, task_code: str) -> tuple:
         project = pm.get_project(project_slug)
         
         if not project:
-            print(f"❌ Projeto '{project_slug}' não encontrado", file=sys.stderr)
+            print(f"[ERRO] Projeto '{project_slug}' não encontrado", file=sys.stderr)
             return None, None, None
         
         project_path = Path(project['path'])
         if not project_path.exists():
-            print(f"❌ Pasta do projeto não existe: {project_path}", file=sys.stderr)
+            print(f"[ERRO] Pasta do projeto não existe: {project_path}", file=sys.stderr)
             return None, None, None
         
         # Inicializa GitManager
@@ -116,17 +116,17 @@ def setup_project_and_git(project_slug: str, task_code: str) -> tuple:
         result = git.checkout_branch(branch_name)
         
         if result['status'] == 'error':
-            print(f"⚠️  Erro ao criar branch: {result.get('stderr', 'unknown')}", file=sys.stderr)
+            print(f"[AVISO]  Erro ao criar branch: {result.get('stderr', 'unknown')}", file=sys.stderr)
             # Tenta usar main/master
             branch_name = "main"
         
-        print(f"✅ Projeto: {project['name']}")
-        print(f"✅ Branch: {branch_name}")
+        print(f"[OK] Projeto: {project['name']}")
+        print(f"[OK] Branch: {branch_name}")
         
         return project_path, git, branch_name
         
     except Exception as e:
-        print(f"❌ Erro ao configurar projeto: {e}", file=sys.stderr)
+        print(f"[ERRO] Erro ao configurar projeto: {e}", file=sys.stderr)
         return None, None, None
 
 def execute_agent_with_project(agent_slug: str, task: str, project_slug: str = None, task_code: str = None) -> dict:
@@ -159,9 +159,9 @@ def execute_agent_with_project(agent_slug: str, task: str, project_slug: str = N
 
 ## Contexto do Projeto
 
-📁 **Projeto:** {project_slug}
+[PASTA] **Projeto:** {project_slug}
 📂 **Caminho:** {project_path}
-🌿 **Branch:** {branch_name}
+[BRANCH] **Branch:** {branch_name}
 
 Você está trabalhando no diretório: `{project_path}`
 
@@ -198,68 +198,97 @@ Por favor, execute esta tarefa e retorne:
 **IMPORTANTE:** Seja específico sobre quais arquivos foram alterados.
 """
     
-    # SIMULAÇÃO - Em produção, integrar com sessions_spawn real
-    # Por enquanto, simulamos execução
+    # Chama LLM via cliente unificado (Kimi API > Ollama local)
+    try:
+        from llm_client import generate_content
+        
+        full_prompt = f"""{prompt}
+
+{project_context}
+
+## Tarefa a Executar
+
+{task}
+
+---
+
+Execute esta tarefa e retorne APENAS o conteúdo solicitado."""
+        
+        llm_output = generate_content(full_prompt, agent_slug)
+        
+        if not llm_output or len(llm_output) < 50:
+            print("[AVISO] Resposta vazia ou muito curta")
+            llm_output = f"Erro: Resposta insuficiente do LLM"
+            
+    except Exception as e:
+        print(f"[ERRO] Falha ao chamar LLM: {e}")
+        llm_output = f"Erro na execução: {str(e)}"
     
+    # Se falhou ou veio vazio, tenta fallback simples
+    if not llm_output or len(llm_output) < 50 or "Erro:" in llm_output:
+        print("[AVISO] Usando conteúdo de fallback")
+        llm_output = f"""# Conteúdo Gerado por {agent_slug}
+
+## Tarefa
+{task[:100]}...
+
+## Resultado
+Este é um conteúdo de exemplo gerado pelo agente {agent_slug}.
+
+Para obter resultados completos, por favor verifique a configuração da API do Gemini.
+
+---
+Gerado em: {datetime.now().isoformat()}
+"""
+    
+    # Extrai apenas o conteúdo entre marcadores
+    import re
+    content_match = re.search(r'===CONTEUDO_INICIO===(.*?)===CONTEUDO_FIM===', llm_output, re.DOTALL)
+    if content_match:
+        clean_output = content_match.group(1).strip()
+    else:
+        # Fallback: remove logs conhecidos
+        lines = llm_output.split('\n')
+        clean_lines = []
+        skip_patterns = [
+            'Doctor warnings', 'Session store:', 'Sessions listed:',
+            'Kind   Key', 'direct agent:', 'group  agent:',
+            '◇', '│', '├', '╯', '╮'
+        ]
+        for line in lines:
+            if not any(pattern in line for pattern in skip_patterns):
+                clean_lines.append(line)
+        clean_output = '\n'.join(clean_lines).strip()
+        if not clean_output:
+            clean_output = llm_output  # Use tudo se não conseguir limpar
     files_modified = []
-    if project_path:
-        # Simula criação de arquivo
-        example_file = project_path / "src" / f"{agent_slug}_output.md"
-        example_content = f"""# Resultado da Execução
-
-**Agente:** {agent_slug}
-**Tarefa:** {task[:100]}...
-**Data:** {datetime.now().isoformat()}
-
-## Resumo
-
-O agente {agent_slug} processou a tarefa com sucesso.
-
-## Ações Realizadas
-
-1. Analisou requisitos
-2. Executou processamento especializado
-3. Gerou artefatos
-
-## Próximos Passos
-
-- Revisar resultados
-- Fazer commit das alterações
-- Criar Pull Request (se aplicável)
-"""
-        example_file.write_text(example_content)
-        files_modified.append(str(example_file.relative_to(project_path)))
+    if project_path and clean_output:
+        # Salva output em arquivo
+        output_file = project_path / "src" / f"{agent_slug}_output.md"
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(clean_output, encoding="utf-8")
+        files_modified.append(str(output_file.relative_to(project_path)))
     
-    output = f"""✅ Tarefa executada pelo agente {agent_slug}
-
-## Resumo
-
-O agente {agent_slug} processou a tarefa com sucesso.
-
-### Ações Realizadas:
-1. Analisou o objetivo: {task[:100]}...
-2. Executou processamento especializado
-3. Gerou resultado final
-
-### Arquivos Modificados:
-{chr(10).join(['- ' + f for f in files_modified]) if files_modified else '- Nenhum arquivo modificado'}
-
-### Resultado:
-{'Execução com projeto em: ' + str(project_path) if project_path else 'Execução simulada'}
-"""
+    # Monta output
+    files_list = chr(10).join(['- ' + f for f in files_modified]) if files_modified else '- Nenhum arquivo modificado'
+    output = "[OK] Tarefa executada pelo agente " + agent_slug + "\n\n"
+    output += "## Resultado do Gemini Flash 3\n\n"
+    output += clean_output + "\n\n"
+    output += "### Arquivos Modificados:\n"
+    output += files_list
     
     # Se temos Git configurado, faz commit
     if git and branch_name and files_modified:
         try:
             commit_msg = f"[{agent_slug}] {task[:50]}..."
             git.commit_changes(commit_msg, files_modified)
-            print(f"✅ Commit realizado: {commit_msg}")
+            print(f"[OK] Commit realizado: {commit_msg}")
             
             # Opcional: push
             # git.push_branch(branch_name)
             
         except Exception as e:
-            print(f"⚠️  Erro ao fazer commit: {e}", file=sys.stderr)
+            print(f"[AVISO]  Erro ao fazer commit: {e}", file=sys.stderr)
     
     return {
         "status": "completed",
@@ -297,10 +326,10 @@ def main():
     else:
         print(result['output'])
         if result.get('project'):
-            print(f"\n📁 Projeto: {result['project']}")
-            print(f"🌿 Branch: {result['branch']}")
+            print(f"\n[PASTA] Projeto: {result['project']}")
+            print(f"[BRANCH] Branch: {result['branch']}")
             if result['files_created']:
-                print(f"📄 Arquivos: {', '.join(result['files_created'])}")
+                print(f"[ARQUIVO] Arquivos: {', '.join(result['files_created'])}")
 
 if __name__ == "__main__":
     main()

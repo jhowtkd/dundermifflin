@@ -1,5 +1,5 @@
 [Unit]
-Description=Dunder Mifflin Worker v2.0 (SQLite Edition)
+Description=Dunder Mifflin Worker v3.0 (Super Agents Edition)
 After=network.target
 
 [Service]
@@ -8,7 +8,7 @@ User=clawd
 WorkingDirectory=/home/clawd/.openclaw/workspace/projects/dunder-mifflin
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/home/clawd/.openclaw/workspace/projects/dunder-mifflin/.env.worker
-ExecStart=/home/clawd/.openclaw/workspace/projects/dunder-mifflin/venv/bin/python /home/clawd/.openclaw/workspace/projects/dunder-mifflin/worker_v2.py
+ExecStart=/home/clawd/.openclaw/workspace/projects/dunder-mifflin/venv/bin/python /home/clawd/.openclaw/workspace/projects/dunder-mifflin/worker_v3.py
 Restart=always
 RestartSec=10
 StandardOutput=journal

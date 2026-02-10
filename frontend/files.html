@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dunder Mifflin - Arquivos Gerados</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --win-bg: #c0c0c0;
+            --win-highlight: #ffffff;
+            --win-shadow: #808080;
+            --win-dark: #404040;
+            --win-blue: #000080;
+            --win-blue-light: #1084d0;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #008080;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .mono { font-family: 'VT323', monospace; font-size: 18px; }
+        
+        .window {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .window-title {
+            background: linear-gradient(90deg, var(--win-blue), var(--win-blue-light));
+            color: white;
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .window-title h1 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .window-btn {
+            width: 20px;
+            height: 18px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #000;
+        }
+        
+        .window-content {
+            padding: 16px;
+        }
+        
+        .menu-bar {
+            display: flex;
+            gap: 16px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--win-shadow);
+            margin-bottom: 16px;
+        }
+        
+        .menu-bar a {
+            color: #000;
+            text-decoration: none;
+            font-size: 12px;
+            padding: 2px 8px;
+        }
+        
+        .menu-bar a:hover {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        /* File Tree */
+        .file-tree {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            min-height: 400px;
+        }
+        
+        .tree-header {
+            background: var(--win-bg);
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--win-shadow);
+            font-weight: 600;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .tree-refresh {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .tree-content {
+            padding: 8px;
+        }
+        
+        .folder {
+            margin: 4px 0;
+        }
+        
+        .folder-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .folder-header:hover {
+            background: #e8e8e8;
+        }
+        
+        .folder-icon {
+            font-size: 16px;
+        }
+        
+        .folder-name {
+            font-weight: 600;
+        }
+        
+        .folder-count {
+            color: var(--win-shadow);
+            font-size: 11px;
+            margin-left: auto;
+        }
+        
+        .folder-content {
+            padding-left: 32px;
+            display: none;
+        }
+        
+        .folder.open .folder-content {
+            display: block;
+        }
+        
+        .folder.open .folder-icon {
+            transform: rotate(90deg);
+        }
+        
+        /* File Item */
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .file-item:hover {
+            background: #e8e8e8;
+        }
+        
+        .file-icon {
+            font-size: 14px;
+        }
+        
+        .file-name {
+            flex: 1;
+        }
+        
+        .file-size {
+            color: var(--win-shadow);
+            font-size: 11px;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+        }
+        
+        .file-item:hover .file-actions {
+            opacity: 1;
+        }
+        
+        .file-btn {
+            background: var(--win-bg);
+            border: 1px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            padding: 2px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #000;
+        }
+        
+        /* Preview Panel */
+        .preview-panel {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            margin-top: 16px;
+            min-height: 200px;
+        }
+        
+        .preview-header {
+            background: var(--win-bg);
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--win-shadow);
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .preview-content {
+            padding: 16px;
+            font-size: 13px;
+            max-height: 400px;
+            overflow: auto;
+        }
+        
+        .preview-placeholder {
+            color: var(--win-shadow);
+            text-align: center;
+            padding: 40px;
+        }
+        
+        /* Stats */
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            padding: 12px;
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            margin-bottom: 16px;
+        }
+        
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--win-blue);
+        }
+        
+        .stat-label {
+            color: var(--win-shadow);
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--win-shadow);
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--win-shadow);
+            font-size: 13px;
+        }
+        
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            background: #f5f5f5;
+            font-size: 11px;
+            border-bottom: 1px solid var(--win-shadow);
+        }
+        
+        .breadcrumb a {
+            color: var(--win-blue);
+            text-decoration: none;
+        }
+        
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="window-title">
+            <h1>📁 ARQUIVOS GERADOS</h1>
+            <div class="window-controls">
+                <a href="index.html" class="window-btn" title="Voltar">←</a>
+                <button class="window-btn">_</button>
+                <button class="window-btn">□</button>
+                <button class="window-btn">×</button>
+            </div>
+        </div>
+        
+        <div class="window-content">
+            <!-- Menu -->
+            <div class="menu-bar">
+                <a href="index.html">🏠 Início</a>
+                <a href="missions.html">📋 Missões</a>
+                <a href="services.html">⚙️ Serviços</a>
+                <a href="history.html">📊 Histórico</a>
+            </div>
+            
+            <!-- Stats -->
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-value mono" id="totalFiles">-</span>
+                    <span class="stat-label">arquivos</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value mono" id="totalSize">-</span>
+                    <span class="stat-label">MB total</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value mono" id="foldersCount">-</span>
+                    <span class="stat-label">pastas</span>
+                </div>
+            </div>
+            
+            <!-- File Tree -->
+            <div class="file-tree">
+                <div class="tree-header">
+                    <span>📂 ESTÚDIO / PROJETOS / DUNDER_MIFFLIN</span>
+                    <button class="tree-refresh" onclick="loadFiles()">🔄 Atualizar</button>
+                </div>
+                
+                <div class="breadcrumb">
+                    <a href="#" onclick="showRoot()">Home</a>
+                    <span>></span>
+                    <a href="#" onclick="showStudio()">Studio</a>
+                    <span>></span>
+                    <a href="#" onclick="showProjects()">Projetos</a>
+                    <span>></span>
+                    <span>Dunder_Mifflin</span>
+                </div>
+                
+                <div class="tree-content" id="fileTree">
+                    <div class="loading">
+                        <div class="mono">Carregando arquivos...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Preview Panel -->
+            <div class="preview-panel">
+                <div class="preview-header">👁️ VISUALIZAÇÃO</div>
+                <div class="preview-content" id="previewContent">
+                    <div class="preview-placeholder">
+                        Clique em um arquivo para visualizar
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API = 'http://100.94.223.52:3003/api';
+        const STUDIO_DIR = '/home/clawd/.openclaw/workspace/studio/projects/dunder_mifflin';
+        
+        let filesData = {};
+        
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        async function loadFiles() {
+            const tree = document.getElementById('fileTree');
+            tree.innerHTML = '<div class="loading"><div class="mono">Carregando arquivos...</div></div>';
+            
+            try {
+                // Carrega via API de arquivos se disponível
+                const response = await fetch(`${API}/files`);
+                if (response.ok) {
+                    const data = await response.json();
+                    filesData = data.files || {};
+                } else {
+                    // Fallback: estrutura padrão
+                    filesData = {
+                        "carousels": { icon: "🎠", files: [] },
+                        "social_plans": { icon: "📅", files: [] },
+                        "blog_posts": { icon: "📝", files: [] },
+                        "marketing_content": { icon: "📢", files: [] },
+                        "tiktok_scripts": { icon: "🎬", files: [] },
+                        "repurposed_content": { icon: "🔄", files: [] }
+                    };
+                }
+                
+                renderFileTree();
+                updateStats();
+                
+            } catch (e) {
+                tree.innerHTML = `
+                    <div class="empty">
+                        ⚠️ Erro ao carquivos: ${e.message}<br>
+                        <small>Verifique se a API está rodando</small>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderFileTree() {
+            const tree = document.getElementById('fileTree');
+            
+            if (Object.keys(filesData).length === 0) {
+                tree.innerHTML = '<div class="empty">Nenhum arquivo encontrado.</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            for (const [folder, data] of Object.entries(filesData)) {
+                const fileCount = data.files ? data.files.length : 0;
+                const icon = data.icon || '📁';
+                
+                html += `
+                    <div class="folder open" id="folder-${folder}">
+                        <div class="folder-header" onclick="toggleFolder('${folder}')">
+                            <span class="folder-icon">▶</span>
+                            <span class="folder-icon">${icon}</span>
+                            <span class="folder-name">${folder}</span>
+                            <span class="folder-count">${fileCount} arquivo(s)</span>
+                        </div>
+                        <div class="folder-content">
+                `;
+                
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(file => {
+                        const fileIcon = getFileIcon(file.name);
+                        html += `
+                            <div class="file-item" onclick="previewFile('${folder}', '${file.name}')">
+                                <span class="file-icon">${fileIcon}</span>
+                                <span class="file-name">${file.name}</span>
+                                <span class="file-size">${formatSize(file.size || 0)}</span>
+                                <span class="file-actions">
+                                    <a href="#" class="file-btn" onclick="downloadFile('${folder}', '${file.name}')">⬇️</a>
+                                </span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += `
+                        <div class="file-item" style="color: #999; font-style: italic;">
+                            Pasta vazia
+                        </div>
+                    `;
+                }
+                
+                html += '</div></div>';
+            }
+            
+            tree.innerHTML = html;
+        }
+        
+        function getFileIcon(filename) {
+            if (filename.endsWith('.html')) return '🌐';
+            if (filename.endsWith('.md')) return '📝';
+            if (filename.endsWith('.json')) return '📊';
+            if (filename.endsWith('.py')) return '🐍';
+            if (filename.endsWith('.js')) return '📜';
+            if (filename.endsWith('.css')) return '🎨';
+            if (filename.endsWith('.txt')) return '📄';
+            if (filename.endsWith('.pdf')) return '📕';
+            if (filename.endsWith('.png') || filename.endsWith('.jpg')) return '🖼️';
+            return '📄';
+        }
+        
+        function toggleFolder(folder) {
+            const el = document.getElementById(`folder-${folder}`);
+            el.classList.toggle('open');
+        }
+        
+        function updateStats() {
+            let totalFiles = 0;
+            let totalSize = 0;
+            
+            for (const data of Object.values(filesData)) {
+                if (data.files) {
+                    totalFiles += data.files.length;
+                    data.files.forEach(f => totalSize += f.size || 0);
+                }
+            }
+            
+            document.getElementById('totalFiles').textContent = totalFiles;
+            document.getElementById('totalSize').textContent = (totalSize / 1024 / 1024).toFixed(1);
+            document.getElementById('foldersCount').textContent = Object.keys(filesData).length;
+        }
+        
+        function previewFile(folder, filename) {
+            const preview = document.getElementById('previewContent');
+            preview.innerHTML = `
+                <div class="loading">
+                    <div class="mono">Carregando ${filename}...</div>
+                </div>
+            `;
+            
+            // Tenta carregar o conteúdo
+            fetch(`${API}/files/${folder}/${filename}`)
+                .then(r => r.text())
+                .then(content => {
+                    if (filename.endsWith('.html')) {
+                        preview.innerHTML = `
+                            <div style="margin-bottom: 8px; font-weight: 600;">${filename}</div>
+                            <iframe srcdoc="${content.replace(/"/g, '&quot;')}" style="width:100%; height:300px; border:1px solid #ccc;"></iframe>
+                        `;
+                    } else {
+                        preview.innerHTML = `
+                            <div style="margin-bottom: 8px; font-weight: 600;">${filename}</div>
+                            <pre style="background:#f5f5f5; padding:12px; overflow:auto; max-height:350px; font-size:11px;">${content.substring(0, 5000)}</pre>
+                        `;
+                    }
+                })
+                .catch(e => {
+                    preview.innerHTML = `
+                        <div class="preview-placeholder">
+                            ⚠️ Não foi possível carregar o arquivo<br>
+                            <small>${e.message}</small>
+                        </div>
+                    `;
+                });
+        }
+        
+        function downloadFile(folder, filename) {
+            window.open(`${API}/files/${folder}/${filename}?download=1`, '_blank');
+        }
+        
+        function showRoot() { loadFiles(); }
+        function showStudio() { loadFiles(); }
+        function showProjects() { loadFiles(); }
+        
+        document.addEventListener('DOMContentLoaded', loadFiles);
+    </script>
+</body>
+</html>

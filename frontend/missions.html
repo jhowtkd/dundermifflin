@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dunder Mifflin - Missões</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --win-bg: #c0c0c0;
+            --win-highlight: #ffffff;
+            --win-shadow: #808080;
+            --win-dark: #404040;
+            --win-blue: #000080;
+            --win-blue-light: #1084d0;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #008080;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .mono { font-family: 'VT323', monospace; font-size: 18px; }
+        
+        /* Win95 Window */
+        .window {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .window-title {
+            background: linear-gradient(90deg, var(--win-blue), var(--win-blue-light));
+            color: white;
+            padding: 6px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .window-title h1 {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .window-btn {
+            width: 20px;
+            height: 18px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #000;
+        }
+        
+        .window-content {
+            padding: 16px;
+        }
+        
+        /* Menu Bar */
+        .menu-bar {
+            display: flex;
+            gap: 16px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--win-shadow);
+            margin-bottom: 16px;
+        }
+        
+        .menu-bar a {
+            color: #000;
+            text-decoration: none;
+            font-size: 12px;
+            padding: 2px 8px;
+        }
+        
+        .menu-bar a:hover {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        /* Filters */
+        .filters {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .filters-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .filter-btn:hover {
+            background: #d4d4d4;
+        }
+        
+        .filter-btn:active {
+            border-color: var(--win-dark) var(--win-highlight) var(--win-highlight) var(--win-dark);
+        }
+        
+        .filter-btn.active {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        /* Missions Table */
+        .missions-container {
+            background: #fff;
+            border: 2px solid;
+            border-color: var(--win-shadow) var(--win-highlight) var(--win-highlight) var(--win-shadow);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .missions-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .missions-table th {
+            background: var(--win-bg);
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--win-shadow);
+            position: sticky;
+            top: 0;
+        }
+        
+        .missions-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .missions-table tr:hover {
+            background: #f5f5f5;
+        }
+        
+        /* Status Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 3px;
+        }
+        
+        .badge-pending { background: #ffc107; color: #000; }
+        .badge-approved { background: #17a2b8; color: #fff; }
+        .badge-running { background: #6f42c1; color: #fff; }
+        .badge-succeeded { background: #28a745; color: #fff; }
+        .badge-failed { background: #dc3545; color: #fff; }
+        
+        /* Priority */
+        .priority {
+            display: inline-flex;
+            gap: 2px;
+        }
+        
+        .priority-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--win-blue);
+            border-radius: 50%;
+        }
+        
+        .priority-dot.empty {
+            background: #ccc;
+        }
+        
+        /* Action Button */
+        .btn-view {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            padding: 4px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #000;
+            display: inline-block;
+        }
+        
+        .btn-view:hover {
+            background: #d4d4d4;
+        }
+        
+        .btn-view:active {
+            border-color: var(--win-dark) var(--win-highlight) var(--win-highlight) var(--win-dark);
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--win-shadow);
+        }
+        
+        .error {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 16px;
+            margin: 16px;
+            font-size: 13px;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--win-shadow);
+            font-size: 13px;
+        }
+        
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px;
+            background: var(--win-bg);
+            border-top: 1px solid var(--win-shadow);
+        }
+        
+        .page-btn {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            min-width: 36px;
+        }
+        
+        .page-btn:hover {
+            background: #d4d4d4;
+        }
+        
+        .page-btn.active {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .missions-table {
+                font-size: 12px;
+            }
+            .missions-table th,
+            .missions-table td {
+                padding: 8px 6px;
+            }
+            .filter-buttons {
+                gap: 4px;
+            }
+            .filter-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="window">
+        <div class="window-title">
+            <h1>📋 MISSÕES</h1>
+            <div class="window-controls">
+                <a href="index.html" class="window-btn" title="Voltar">←</a>
+                <button class="window-btn">_</button>
+                <button class="window-btn">□</button>
+                <button class="window-btn">×</button>
+            </div>
+        </div>
+        
+        <div class="window-content">
+            <!-- Menu -->
+            <div class="menu-bar">
+                <a href="index.html">🏠 Início</a>
+                <a href="services.html">⚙️ Serviços</a>
+                <a href="agents.html">🤖 Agentes</a>
+                <a href="history.html">📁 Histórico</a>
+            </div>
+            
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filters-title">🔍 FILTRAR POR STATUS</div>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">Todas</button>
+                    <button class="filter-btn" data-filter="pending">⏳ Pendentes</button>
+                    <button class="filter-btn" data-filter="approved">✅ Aprovadas</button>
+                    <button class="filter-btn" data-filter="running">🔄 Executando</button>
+                    <button class="filter-btn" data-filter="succeeded">🎉 Concluídas</button>
+                    <button class="filter-btn" data-filter="failed">❌ Falhas</button>
+                </div>
+            </div>
+            
+            <!-- Missions List -->
+            <div class="missions-container">
+                <div id="missionsLoading" class="loading">
+                    <div class="mono">Carregando missões...</div>
+                </div>
+                <div id="missionsError" class="error" style="display: none;"></div>
+                <table class="missions-table" id="missionsTable" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Título</th>
+                            <th>Agente</th>
+                            <th>Status</th>
+                            <th>Prioridade</th>
+                            <th>Criada</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="missionsBody">
+                    </tbody>
+                </table>
+                <div id="missionsEmpty" class="empty" style="display: none;">
+                    Nenhuma missão encontrada.
+                </div>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button class="page-btn" id="prevPage" onclick="changePage(-1)">←</button>
+                <span id="pageInfo" style="padding: 6px 12px; font-size: 12px;">Página 1 de 1</span>
+                <button class="page-btn" id="nextPage" onclick="changePage(1)">→</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API = 'http://100.94.223.52:3003/api';
+        let currentFilter = 'all';
+        let currentPage = 1;
+        let allMissions = [];
+        const perPage = 20;
+        
+        function getStatusBadge(status) {
+            const badges = {
+                'pending': '<span class="badge badge-pending">⏳ PENDENTE</span>',
+                'approved': '<span class="badge badge-approved">✅ APROVADA</span>',
+                'running': '<span class="badge badge-running">🔄 EXECUTANDO</span>',
+                'succeeded': '<span class="badge badge-succeeded">🎉 CONCLUÍDA</span>',
+                'failed': '<span class="badge badge-failed">❌ FALHOU</span>',
+                'cancelled': '<span class="badge">⛔ CANCELADA</span>'
+            };
+            return badges[status] || `<span class="badge">${status}</span>`;
+        }
+        
+        function getPriorityDots(priority) {
+            let html = '<span class="priority">';
+            for (let i = 1; i <= 5; i++) {
+                html += `<span class="priority-dot ${i <= priority ? '' : 'empty'}"></span>`;
+            }
+            html += '</span>';
+            return html;
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+        }
+        
+        async function loadMissions() {
+            try {
+                document.getElementById('missionsLoading').style.display = 'block';
+                document.getElementById('missionsTable').style.display = 'none';
+                document.getElementById('missionsError').style.display = 'none';
+                document.getElementById('pagination').style.display = 'none';
+                
+                const url = currentFilter === 'all' 
+                    ? `${API}/missions` 
+                    : `${API}/missions?status=${currentFilter}`;
+                    
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                allMissions = data.missions || [];
+                
+                document.getElementById('missionsLoading').style.display = 'none';
+                
+                if (allMissions.length === 0) {
+                    document.getElementById('missionsEmpty').style.display = 'block';
+                    return;
+                }
+                
+                renderMissions();
+                document.getElementById('missionsTable').style.display = 'table';
+                
+                if (allMissions.length > perPage) {
+                    document.getElementById('pagination').style.display = 'flex';
+                    updatePagination();
+                }
+                
+            } catch (e) {
+                document.getElementById('missionsLoading').style.display = 'none';
+                document.getElementById('missionsError').style.display = 'block';
+                document.getElementById('missionsError').textContent = `Erro ao carregar: ${e.message}`;
+            }
+        }
+        
+        function renderMissions() {
+            const tbody = document.getElementById('missionsBody');
+            tbody.innerHTML = '';
+            
+            const start = (currentPage - 1) * perPage;
+            const end = start + perPage;
+            const missions = allMissions.slice(start, end);
+            
+            missions.forEach(m => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="mono">${m.mission_code || m.code || '-'}</td>
+                    <td>${m.title || '-'}</td>
+                    <td>${m.agent_name || m.agent_slug || '-'}</td>
+                    <td>${getStatusBadge(m.status)}</td>
+                    <td>${getPriorityDots(m.priority || 1)}</td>
+                    <td>${formatDate(m.created_at)}</td>
+                    <td>
+                        <a href="mission-detail.html?id=${m.id}" class="btn-view">👁️ Ver</a>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function updatePagination() {
+            const totalPages = Math.ceil(allMissions.length / perPage);
+            document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+        }
+        
+        function changePage(delta) {
+            const totalPages = Math.ceil(allMissions.length / perPage);
+            currentPage = Math.max(1, Math.min(totalPages, currentPage + delta));
+            renderMissions();
+            updatePagination();
+        }
+        
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                currentPage = 1;
+                loadMissions();
+            });
+        });
+        
+        document.addEventListener('DOMContentLoaded', loadMissions);
+    </script>
+</body>
+</html>

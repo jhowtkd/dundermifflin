@@ -916,6 +916,275 @@ def get_agent(slug):
 
 
 # ============================================================
+# RALPH LOOP ENDPOINTS
+# ============================================================
+
+@app.route('/api/ralph/loops/active', methods=['GET'])
+def get_ralph_loops_active():
+    """Retorna loops Ralph atualmente em execução"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT * FROM ralph_loops 
+        WHERE status = 'running'
+        ORDER BY started_at DESC
+    """)
+    
+    loops = [dict(row) for row in cur.fetchall()]
+    conn.close()
+    return jsonify(loops)
+
+
+@app.route('/api/ralph/loops/history', methods=['GET'])
+def get_ralph_loops_history():
+    """Retorna histórico de loops completados/falhos"""
+    limit = request.args.get('limit', 50, type=int)
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        SELECT * FROM ralph_loops 
+        WHERE status IN ('completed', 'failed')
+        ORDER BY completed_at DESC
+        LIMIT ?
+    """, (limit,))
+    
+    loops = [dict(row) for row in cur.fetchall()]
+    conn.close()
+    return jsonify(loops)
+
+
+@app.route('/api/ralph/loops/<loop_code>', methods=['GET'])
+def get_ralph_loop_detail(loop_code):
+    """Retorna detalhes de um loop específico"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("SELECT * FROM ralph_loops WHERE loop_code = ?", (loop_code,))
+    row = cur.fetchone()
+    
+    if not row:
+        conn.close()
+        return jsonify({"error": "Loop not found"}), 404
+    
+    result = dict(row)
+    if result.get("iterations_log"):
+        result["iterations"] = json.loads(result["iterations_log"])
+    
+    conn.close()
+    return jsonify(result)
+
+
+@app.route('/api/ralph/costs/summary', methods=['GET'])
+def get_ralph_costs_summary():
+    """Retorna resumo de custos dos últimos N dias"""
+    days = request.args.get('days', 30, type=int)
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute(f"""
+        SELECT 
+            SUM(total_cost_usd) as total_cost,
+            SUM(total_tokens_in) as total_in,
+            SUM(total_tokens_out) as total_out,
+            SUM(loops_completed) as total_completed,
+            SUM(loops_failed) as total_failed,
+            SUM(total_iterations) as total_iterations
+        FROM ralph_metrics
+        WHERE date >= date('now', '-{days} days')
+    """)
+    
+    row = cur.fetchone()
+    conn.close()
+    
+    total_completed = row["total_completed"] or 0
+    total_failed = row["total_failed"] or 0
+    total_loops = total_completed + total_failed
+    
+    return jsonify({
+        "total_cost_usd": round(row["total_cost"] or 0, 4),
+        "total_tokens_in": row["total_in"] or 0,
+        "total_tokens_out": row["total_out"] or 0,
+        "total_loops": total_loops,
+        "completed": total_completed,
+        "failed": total_failed,
+        "success_rate": round(total_completed / max(total_loops, 1), 2),
+        "total_iterations": row["total_iterations"] or 0,
+        "avg_iterations": round((row["total_iterations"] or 0) / max(total_loops, 1), 1)
+    })
+
+
+@app.route('/api/ralph/metrics/agents', methods=['GET'])
+def get_ralph_agent_metrics():
+    """Retorna métricas agregadas por agente"""
+    days = request.args.get('days', 7, type=int)
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute(f"""
+        SELECT 
+            agent_slug,
+            SUM(loops_started) as total_started,
+            SUM(loops_completed) as total_completed,
+            SUM(loops_failed) as total_failed,
+            SUM(total_cost_usd) as total_cost,
+            AVG(success_rate) as avg_success_rate,
+            AVG(avg_cost_per_loop) as avg_cost_per_loop
+        FROM ralph_metrics
+        WHERE date >= date('now', '-{days} days')
+        GROUP BY agent_slug
+    """)
+    
+    metrics = [dict(row) for row in cur.fetchall()]
+    conn.close()
+    return jsonify(metrics)
+
+
+@app.route('/api/ralph/metrics/daily', methods=['GET'])
+def get_ralph_daily_metrics():
+    """Retorna métricas diárias para gráficos"""
+    days = request.args.get('days', 7, type=int)
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute(f"""
+        SELECT 
+            date,
+            SUM(total_cost_usd) as daily_cost,
+            SUM(loops_completed) as daily_completed,
+            SUM(loops_failed) as daily_failed
+        FROM ralph_metrics
+        WHERE date >= date('now', '-{days} days')
+        GROUP BY date
+        ORDER BY date
+    """)
+    
+    metrics = [dict(row) for row in cur.fetchall()]
+    conn.close()
+    return jsonify(metrics)
+
+
+@app.route('/api/ralph/loop', methods=['POST'])
+def create_ralph_loop():
+    """Cria um novo Ralph Loop via API (simplificado)"""
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    
+    agent_slug = data.get('agent') or data.get('agent_slug')
+    task = data.get('task') or data.get('task_description')
+    max_iterations = data.get('max_iterations', 20)
+    
+    if not agent_slug or not task:
+        return jsonify({"error": "Missing agent or task"}), 400
+    
+    # Mapear nomes simplificados
+    agent_map = {
+        'dev': 'o-dev',
+        'marketeiro': 'o-marketeiro',
+        'mkt': 'o-marketeiro',
+        'executivo': 'o-executivo',
+        'exec': 'o-executivo'
+    }
+    agent_slug = agent_map.get(agent_slug, agent_slug)
+    
+    try:
+        # Importar e criar loop
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent))
+        from ralph_loop import create_loop
+        
+        loop_code = create_loop(agent_slug, task, max_iterations)
+        
+        return jsonify({
+            "success": True,
+            "loop_code": loop_code,
+            "agent": agent_slug,
+            "task": task,
+            "status": "running",
+            "dashboard_url": f"http://clawd-b450mhp:8888/ralph-dashboard.html?loop={loop_code}"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/ralph/loop/<loop_code>/cancel', methods=['POST'])
+def cancel_ralph_loop(loop_code):
+    """Cancela um loop em execução"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("""
+        UPDATE ralph_loops 
+        SET status = 'cancelled', completed_at = ?
+        WHERE loop_code = ? AND status = 'running'
+    """, (datetime.now().isoformat(), loop_code))
+    
+    conn.commit()
+    affected = cur.rowcount
+    conn.close()
+    
+    if affected > 0:
+        return jsonify({"success": True, "message": f"Loop {loop_code} cancelled"})
+    else:
+        return jsonify({"error": "Loop not found or not running"}), 404
+
+
+@app.route('/api/ralph/notifications', methods=['GET'])
+def get_ralph_notifications():
+    """Retorna notificações pendentes de loops completados"""
+    notifications_dir = Path(__file__).parent / "loops" / "notifications"
+    
+    if not notifications_dir.exists():
+        return jsonify({"notifications": []})
+    
+    notifications = []
+    
+    for notif_file in notifications_dir.glob("*.json"):
+        try:
+            with open(notif_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            if data.get('status_notification') == 'pending':
+                notifications.append(data)
+                
+                # Marcar como lido (mas não removido)
+                data['status_notification'] = 'read'
+                with open(notif_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+                
+        except Exception as e:
+            print(f"Erro ao ler notificação {notif_file}: {e}")
+    
+    # Ordenar por timestamp (mais recentes primeiro)
+    notifications.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    
+    return jsonify({"notifications": notifications[:10]})  # Retornar apenas as 10 mais recentes
+
+
+@app.route('/api/ralph/notifications/clear', methods=['POST'])
+def clear_ralph_notifications():
+    """Limpa todas as notificações"""
+    notifications_dir = Path(__file__).parent / "loops" / "notifications"
+    
+    if notifications_dir.exists():
+        for notif_file in notifications_dir.glob("*.json"):
+            try:
+                notif_file.unlink()
+            except Exception as e:
+                print(f"Erro ao remover {notif_file}: {e}")
+    
+    return jsonify({"success": True, "message": "Notificações limpas"})
+
+
+# ============================================================
 # ROTAS DO FRONTEND
 # ============================================================
 

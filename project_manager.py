@@ -212,7 +212,7 @@ class GitManager:
         # Tenta criar branch
         result = self.exec_git(["checkout", "-b", branch_name])
         
-        if result["status"] == "error"]:
+        if result["status"] == "error":
             # Branch pode já existir, tenta fazer checkout
             result = self.exec_git(["checkout", branch_name])
         

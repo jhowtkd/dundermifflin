@@ -127,6 +127,161 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
+        }
+        
+        @media (max-width: 600px) {
+            .list-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .list-item .item-info {
+                width: 100%;
+            }
+            
+            .list-item h4 {
+                font-size: 12px;
+                word-break: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            .item-actions {
+                display: flex;
+                gap: 8px;
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+        
+        .item-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        
+        .btn-win {
+            padding: 4px 12px;
+            font-size: 11px;
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .btn-win:hover {
+            background: var(--win-blue);
+            color: white;
+        }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: var(--win-bg);
+            border: 2px solid;
+            border-color: var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header {
+            background: var(--win-blue);
+            color: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            background: white;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* Estilos para Markdown */
+        .modal-body h1 {
+            font-size: 24px;
+            color: var(--win-blue);
+            border-bottom: 2px solid var(--win-blue);
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .modal-body h2 {
+            font-size: 20px;
+            color: #333;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+        
+        .modal-body h3 {
+            font-size: 16px;
+            color: #555;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .modal-body ul, .modal-body ol {
+            margin-left: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .modal-body li {
+            margin-bottom: 8px;
+        }
+        
+        .modal-body strong {
+            color: var(--win-blue);
+            font-weight: 600;
+        }
+        
+        .modal-body blockquote {
+            border-left: 4px solid var(--win-blue);
+            padding-left: 16px;
+            margin: 16px 0;
+            color: #555;
+            font-style: italic;
+        }
+        
+        .modal-body code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        
+        .modal-body pre {
+            background: #f8f8f8;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
         }
         
         .list-item:hover {
@@ -308,7 +463,10 @@
                                 ${s.session_code} | ${new Date(s.created_at).toLocaleDateString()}
                             </div>
                         </div>
-                        <span class="item-status ${s.status}">${s.status.toUpperCase()}</span>
+                        <div class="item-actions">
+                            <button class="btn-win" onclick="viewExecutionResult(${s.execution_plan_id}, '${s.plan_title || 'Execução'}')">Visualizar</button>
+                            <span class="item-status ${s.status}">${s.status.toUpperCase()}</span>
+                        </div>
                     </div>
                 `).join('');
                 
@@ -340,12 +498,9 @@
                                 ${Math.round(f.size / 1024)} KB | ${new Date(f.modified).toLocaleDateString()}
                             </div>
                         </div>
-                        <a href="${API}/files/${f.path}" target="_blank" 
-                           style="padding:4px 12px;font-size:11px;background:var(--win-bg);border:2px solid;
-                                  border-color:var(--win-highlight) var(--win-dark) var(--win-dark) var(--win-highlight);
-                                  text-decoration:none;color:inherit;">
-                            Abrir
-                        </a>
+                        <div class="item-actions">
+                            <a href="${API}/files/${f.path}" target="_blank" class="btn-win">Abrir</a>
+                        </div>
                     </div>
                 `).join('');
                 
@@ -358,6 +513,60 @@
         
         document.addEventListener('DOMContentLoaded', () => {
             loadMissions();
+        });
+        
+        // Modal de visualização de resultado
+        function viewExecutionResult(planId, title) {
+            // Cria modal
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'resultModal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <span>📄 ${title}</span>
+                        <button onclick="closeModal()" style="background:none;border:none;color:white;cursor:pointer;font-size:18px;">×</button>
+                    </div>
+                    <div class="modal-body" id="modalBody">
+                        Carregando...
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Busca resultado
+            fetch(`${API}/execution-plans/${planId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const result = data.final_result || data.result || 'Nenhum resultado disponível';
+                    // Parse básico de Markdown para HTML
+                    let formatted = result
+                        .replace(/# (.*)/g, '<h1>$1</h1>')
+                        .replace(/## (.*)/g, '<h2>$1</h2>')
+                        .replace(/### (.*)/g, '<h3>$1</h3>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/- (.*)/g, '<li>$1</li>')
+                        .replace(/<li>(.*)<\/li>/g, '<ul><li>$1</li></ul>')
+                        .replace(/---/g, '<hr>')
+                        .replace(/\n/g, '<br>');
+                    document.getElementById('modalBody').innerHTML = formatted;
+                })
+                .catch(e => {
+                    document.getElementById('modalBody').textContent = 'Erro ao carregar: ' + e.message;
+                });
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('resultModal');
+            if (modal) modal.remove();
+        }
+        
+        // Fecha modal ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) {
+                closeModal();
+            }
         });
     </script>
 </body>

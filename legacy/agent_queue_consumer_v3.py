@@ -36,7 +36,7 @@ def get_pending_tasks(limit: int = 2) -> list:
     
     cur.execute("""
         SELECT * FROM agent_tasks_queue 
-        WHERE status = 'queued_for_openclaw'
+        WHERE status = 'pending'
         ORDER BY created_at ASC
         LIMIT ?
     """, (limit,))
@@ -59,7 +59,7 @@ def update_task_status(task_id: int, status: str, result: str = None, error: str
             SET status = ?, started_at = ?
             WHERE id = ?
         """, (status, now, task_id))
-    elif status in ('completed', 'failed', 'completed_by_openclaw', 'failed_by_openclaw'):
+    elif status in ('completed', 'failed', 'completed', 'failed'):
         cur.execute("""
             UPDATE agent_tasks_queue 
             SET status = ?, result = ?, error_message = ?, completed_at = ?
@@ -103,7 +103,7 @@ def execute_task_with_agent(task: dict) -> dict:
             cmd,
             capture_output=True,
             text=True,
-            timeout=300,  # 5 minutos timeout
+            timeout=900,  # 15 minutos timeout (ajustado para loops)
             cwd=Path(__file__).parent
         )
         
@@ -120,21 +120,21 @@ def execute_task_with_agent(task: dict) -> dict:
                     logger.info(f"   🌿 Branch: {output_data['branch']}")
                 
                 return {
-                    "status": "completed_by_openclaw",
+                    "status": "completed",
                     "result": result.stdout,
                     "error": None
                 }
             except json.JSONDecodeError:
                 logger.warning(f"   ⚠️  Saída não é JSON válido, usando como texto")
                 return {
-                    "status": "completed_by_openclaw",
+                    "status": "completed",
                     "result": json.dumps({"output": result.stdout}),
                     "error": None
                 }
         else:
             logger.error(f"   ❌ {task_code} falhou: {result.stderr[:200]}")
             return {
-                "status": "failed_by_openclaw",
+                "status": "failed",
                 "result": None,
                 "error": result.stderr or "Erro desconhecido"
             }
@@ -142,14 +142,14 @@ def execute_task_with_agent(task: dict) -> dict:
     except subprocess.TimeoutExpired:
         logger.error(f"   ⏱️ {task_code} timeout após 300s")
         return {
-            "status": "failed_by_openclaw",
+            "status": "failed",
             "result": None,
             "error": "Timeout: Execução excedeu 5 minutos"
         }
     except Exception as e:
         logger.error(f"   ❌ Erro ao executar {task_code}: {e}")
         return {
-            "status": "failed_by_openclaw",
+            "status": "failed",
             "result": None,
             "error": str(e)
         }
@@ -168,7 +168,7 @@ def process_tasks():
     for task in tasks:
         try:
             # Marca como em execução
-            update_task_status(task['id'], 'executing_by_openclaw')
+            update_task_status(task['id'], 'running')
             logger.info(f"   🚀 {task['task_code']} ({task['agent_slug']}) - EXECUTANDO")
             
             # EXECUTA A TAREFA
@@ -182,7 +182,7 @@ def process_tasks():
                 error=result.get('error')
             )
             
-            if result['status'] == 'completed_by_openclaw':
+            if result['status'] == 'completed':
                 executed += 1
                 logger.info(f"   ✅ {task['task_code']} finalizado")
             else:
@@ -190,7 +190,7 @@ def process_tasks():
             
         except Exception as e:
             logger.error(f"   ❌ Erro crítico em {task['task_code']}: {e}")
-            update_task_status(task['id'], 'failed_by_openclaw', error=str(e))
+            update_task_status(task['id'], 'failed', error=str(e))
     
     return executed
 

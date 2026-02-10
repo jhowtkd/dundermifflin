@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dunder Mifflin - Documentação Técnica</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        nav {
+            background: #2d2d44;
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        nav a {
+            color: #00d4ff;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        
+        nav a:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+        
+        main {
+            padding: 2rem;
+        }
+        
+        section {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        section:last-child {
+            border-bottom: none;
+        }
+        
+        h2 {
+            color: #1a1a2e;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #00d4ff;
+        }
+        
+        h3 {
+            color: #2d2d44;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem;
+        }
+        
+        h4 {
+            color: #444;
+            font-size: 1.2rem;
+            margin: 1rem 0 0.5rem;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+            text-align: justify;
+        }
+        
+        .highlight {
+            background: #f0f8ff;
+            padding: 1.5rem;
+            border-left: 4px solid #00d4ff;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            padding: 1rem;
+            border-left: 4px solid #ffc107;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 1rem 0;
+        }
+        
+        .code-block .comment {
+            color: #6a9955;
+        }
+        
+        .code-block .keyword {
+            color: #569cd6;
+        }
+        
+        .code-block .string {
+            color: #ce9178;
+        }
+        
+        .code-block .function {
+            color: #dcdcaa;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            background: white;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #2d2d44;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px solid #dee2e6;
+        }
+        
+        .endpoint-method {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+        }
+        
+        .get { background: #28a745; color: white; }
+        .post { background: #007bff; color: white; }
+        .put { background: #ffc107; color: black; }
+        .delete { background: #dc3545; color: white; }
+        
+        .architecture-diagram {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        .component-box {
+            display: inline-block;
+            padding: 1rem 2rem;
+            margin: 0.5rem;
+            background: white;
+            border: 2px solid #00d4ff;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .arrow {
+            font-size: 2rem;
+            color: #00d4ff;
+            margin: 0 1rem;
+        }
+        
+        footer {
+            background: #1a1a2e;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+        
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .status-active { background: #d4edda; color: #155724; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        .status-completed { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 Dunder Mifflin</h1>
+            <p>Sistema de Gestão de Agentes AI - Documentação Técnica Completa</p>
+            <p style="font-size: 0.9rem; margin-top: 1rem;">Versão 3.0 | Última atualização: 10/02/2026</p>
+        </header>
+        
+        <nav>
+            <ul>
+                <li><a href="#visao-geral">Visão Geral</a></li>
+                <li><a href="#arquitetura">Arquitetura</a></li>
+                <li><a href="#backend">Backend</a></li>
+                <li><a href="#frontend">Frontend</a></li>
+                <li><a href="#ralph-loop">Ralph Loop</a></li>
+                <li><a href="#banco-dados">Banco de Dados</a></li>
+                <li><a href="#api">API REST</a></li>
+                <li><a href="#deploy">Deploy</a></li>
+            </ul>
+        </nav>
+        
+        <main>
+            <!-- VISÃO GERAL -->
+            <section id="visao-geral">
+                <h2>📋 Visão Geral</h2>
+                
+                <div class="highlight">
+                    <strong>O que é:</strong> O Dunder Mifflin é um sistema de orquestração de agentes AI (LLMs) que permite criar, gerenciar e executar tarefas através de múltiplos agentes especializados, com ciclo de iteração automático (Ralph Loop) para refinamento contínuo.
+                </div>
+                
+                <h3>Funcionalidades Principais</h3>
+                <ul>
+                    <li><strong>Gerenciamento de Agentes:</strong> 63+ agentes especializados em 10 departamentos</li>
+                    <li><strong>Missões:</strong> Sistema de tarefas com atribuição automática de agentes</li>
+                    <li><strong>Ralph Loop:</strong> Iteração automática até completude com tracking de custos</li>
+                    <li><strong>Dashboard Web:</strong> Interface visual para monitoramento em tempo real</li>
+                    <li><strong>API REST:</strong> Integração completa via HTTP/JSON</li>
+                    <li><strong>Cron Jobs:</strong> Execução automática e notificações</li>
+                </ul>
+                
+                <h3>Tecnologias Utilizadas</h3>
+                <table>
+                    <tr>
+                        <th>Camada</th>
+                        <th>Tecnologia</th>
+                        <th>Versão</th>
+                    </tr>
+                    <tr>
+                        <td>Backend</td>
+                        <td>Python + Flask</td>
+                        <td>3.12 / 3.0</td>
+                    </tr>
+                    <tr>
+                        <td>Banco de Dados</td>
+                        <td>SQLite</td>
+                        <td>3.x</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend</td>
+                        <td>HTML5 + CSS3 + Vanilla JS</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>LLM</td>
+                        <td>Kimi CLI (Moonshot AI)</td>
+                        <td>Latest</td>
+                    </tr>
+                    <tr>
+                        <td>Servidor Web</td>
+                        <td>Python HTTP Server</td>
+                        <td>-</td>
+                    </tr>
+                </table>
+            </section>
+            
+            <!-- ARQUITETURA -->
+            <section id="arquitetura">
+                <h2>🏗️ Arquitetura do Sistema</h2>
+                
+                <div class="architecture-diagram">
+                    <div class="component-box">👤 Usuário</div>
+                    <span class="arrow">→</span>
+                    <div class="component-box">🌐 Frontend<br>(Porta 8888)</div>
+                    <span class="arrow">→</span>
+                    <div class="component-box">⚙️ API Flask<br>(Porta 3003)</div>
+                    <span class="arrow">→</span>
+                    <div class="component-box">💾 SQLite</div>
+                    <br><br>
+                    <div class="component-box">🤖 Ralph Loop<br>Executor</div>
+                    <span class="arrow">→</span>
+                    <div class="component-box">🧠 Kimi AI<br>(LLM)</div>
+                </div>
+                
+                <h3>Fluxo de Dados</h3>
+                <ol>
+                    <li><strong>Criação:</strong> Usuário cria missão/loop via Dashboard ou API</li>
+                    <li><strong>Persistência:</strong> Dados salvos no SQLite</li>
+                    <li><strong>Execução:</strong> Ralph Loop Executor busca tarefas pendentes</li>
+                    <li><strong>Processamento:</strong> Chamada ao Kimi AI com prompt estruturado</li>
+                    <li><strong>Validação:</strong> Verificação de completude (<code>&lt;RALPH_COMPLETE&gt;</code>)</li>
+                    <li><strong>Atualização:</strong> Status atualizado no banco + arquivo de resultado</li>
+                    <li><strong>Notificação:</strong> Dashboard atualizado em tempo real</li>
+                </ol>
+                
+                <h3>Componentes Principais</h3>
+                <table>
+                    <tr>
+                        <th>Componente</th>
+                        <th>Arquivo</th>
+                        <th>Função</th>
+                    </tr>
+                    <tr>
+                        <td>API Flask</td>
+                        <td><code>api_flask.py</code></td>
+                        <td>Servidor REST na porta 3003</td>
+                    </tr>
+                    <tr>
+                        <td>Ralph Executor</td>
+                        <td><code>ralph_executor_v3.py</code></td>
+                        <td>Processa loops iterativamente</td>
+                    </tr>
+                    <tr>
+                        <td>Core Loop</td>
+                        <td><code>ralph_loop.py</code></td>
+                        <td>Funções de banco e utilitários</td>
+                    </tr>
+                    <tr>
+                        <td>Bash Script</td>
+                        <td><code>loops/ralph-loop.sh</code></td>
+                        <td>Executor via CLI (legado)</td>
+                    </tr>
+                </table>
+            </section>
+            
+            <!-- BACKEND -->
+            <section id="backend">
+                <h2>⚙️ Backend - API Flask</h2>
+                
+                <h3>Estrutura de Arquivos</h3>
+                <div class="code-block">
+/home/clawd/.openclaw/workspace/projects/dunder-mifflin/
+├── api_flask.py              # API principal (porta 3003)
+├── ralph_loop.py             # Core do Ralph Loop
+├── ralph_executor_v3.py      # Executor Python puro
+├── loops/
+│   ├── ralph-loop.sh         # Executor bash (legado)
+│   ├── prompts/              # Prompts dos agentes
+│   │   ├── dev-prompt.md
+│   │   ├── marketeiro-prompt.md
+│   │   └── executivo-prompt.md
+│   ├── results/              # Resultados dos loops (.md)
+│   └── logs/                 # Logs detalhados
+├── legacy/                   # Arquivos v1/v2 (backup)
+└── dunder_mifflin.db         # Banco SQLite
+                </div>
+                
+                <h3>Configuração de Portas</h3>
+                <table>
+                    <tr>
+                        <th>Serviço</th>
+                        <th>Porta</th>
+                        <th>Variável</th>
+                    </tr>
+                    <tr>
+                        <td>API Flask</td>
+                        <td>3003</td>
+                        <td><code>DM_API_PORT</code></td>
+                    </tr>
+                    <tr>
+                        <td>Frontend</td>
+                        <td>8888</td>
+                        <td>Hardcoded</td>
+                    </tr>
+                </table>
+                
+                <h3>Inicialização do Servidor</h3>
+                <div class="code-block">
+<span class="comment"># Iniciar API Flask</span>
+cd ~/.openclaw/workspace/projects/dunder-mifflin
+python3 api_flask.py
+
+<span class="comment"># Ou em background</span>
+python3 api_flask.py > /tmp/api.log 2>&1 &
+                </div>
+                
+                <h3>Configuração CORS</h3>
+                <p>A API utiliza Flask-CORS para permitir requisições cross-origin:</p>
+                <div class="code-block">
+<span class="keyword">from</span> flask_cors <span class="keyword">import</span> CORS
+
+app = Flask(__name__)
+CORS(app)  <span class="comment"># Permite todas as origens</span>
+                </div>
+            </section>
+            
+            <!-- FRONTEND -->
+            <section id="frontend">
+                <h2>🌐 Frontend</h2>
+                
+                <h3>Páginas Disponíveis</h3>
+                <table>
+                    <tr>
+                        <th>Página</th>
+                        <th>URL</th>
+                        <th>Descrição</th>
+                    </tr>
+                    <tr>
+                        <td>Dashboard</td>
+                        <td><code>/index.html</code></td>
+                        <td>Painel principal com visão geral</td>
+                    </tr>
+                    <tr>
+                        <td>Agentes</td>
+                        <td><code>/agents.html</code></td>
+                        <td>Listagem e gerenciamento de agentes</td>
+                    </tr>
+                    <tr>
+                        <td>Missões</td>
+                        <td><code>/missions.html</code></td>
+                        <td>Todas as missões ativas</td>
+                    </tr>
+                    <tr>
+                        <td>Detalhe Missão</td>
+                        <td><code>/mission-detail.html?id=X</code></td>
+                        <td>Visualização detalhada</td>
+                    </tr>
+                    <tr>
+                        <td>Ralph Dashboard</td>
+                        <td><code>/ralph-dashboard.html</code></td>
+                        <td>Monitoramento de loops</td>
+                    </tr>
+                    <tr>
+                        <td>Iniciar Loop</td>
+                        <td><code>/ralph-start.html</code></td>
+                        <td>Formulário para criar novo loop</td>
+                    </tr>
+                    <tr>
+                        <td>Propostas</td>
+                        <td><code>/proposals.html</code></td>
+                        <td>Gerenciamento de propostas</td>
+                    </tr>
+                    <tr>
+                        <td>Serviços</td>
+                        <td><code>/services.html</code></td>
+                        <td>Catálogo de serviços</td>
+                    </tr>
+                    <tr>
+                        <td>Histórico</td>
+                        <td><code>/history.html</code></td>
+                        <td>Histórico de execuções</td>
+                    </tr>
+                    <tr>
+                        <td>Arquivos</td>
+                        <td><code>/files.html</code></td>
+                        <td>Gerenciamento de arquivos</td>
+                    </tr>
+                </table>
+                
+                <h3>Servidor Frontend</h3>
+                <div class="code-block">
+<span class="comment"># Iniciar servidor na porta 8888</span>
+cd ~/.openclaw/workspace/projects/dunder-mifflin/frontend
+python3 -m http.server 8888
+
+<span class="comment"># Acessar via Tailscale</span>
+http://100.94.223.52:8888/ralph-dashboard.html
+                </div>
+                
+                <h3>Tema Visual</h3>
+                <ul>
+                    <li><strong>Estilo:</strong> Dark mode moderno com gradientes</li>
+                    <li><strong>Cores principais:</strong>
+                        <ul>
+                            <li>Background: <code>#0f0f0f</code></li>
+                            <li>Cards: <code>#1a1a1a</code></li>
+                            <li>Destaque: <code>#00d4ff</code> (ciano)</li>
+                            <li>Sucesso: <code>#00ff88</code></li>
+                        </ul>
+                    </li>
+                    <li><strong>Fonte:</strong> System fonts (apple-system, Segoe UI, Roboto)</li>
+                </ul>
+            </section>
+            
+            <!-- RALPH LOOP -->
+            <section id="ralph-loop">
+                <h2>🔄 Ralph Loop - Sistema de Iteração</h2>
+                
+                <h3>Como Funciona</h3>
+                <p>O Ralph Loop é o coração do sistema. Ele permite que tarefas complexas sejam executadas em múltiplas iterações com um agente AI, até que o objetivo seja alcançado.</p>
+                
+                <div class="highlight">
+                    <strong>Conceito:</strong> Em vez de uma única chamada ao LLM, o loop executa iterações sucessivas, onde cada resposta é analisada e, se necessário, uma nova iteração é iniciada com contexto atualizado.
+                </div>
+                
+                <h3>Fluxo do Loop</h3>
+                <ol>
+                    <li><strong>Criação:</strong> Loop criado com <code>status='running'</code> e <code>current_iteration=0</code></li>
+                    <li><strong>Execução:</strong> Executor busca loops com <code>iteration=0</code></li>
+                    <li><strong>Iteração:</strong> Agente recebe prompt + histórico e responde</li>
+                    <li><strong>Validação:</strong> Verifica se contém <code>&lt;RALPH_COMPLETE&gt;</code></li>
+                    <li><strong>Se completo:</strong> Salva resultado, marca como <code>completed</code></li>
+                    <li><strong>Se incompleto:</strong> Incrementa iteração, atualiza histórico, repete</li>
+                </ol>
+                
+                <h3>Sinal de Completude</h3>
+                <div class="code-block">
+<span class="comment"># O agente DEVE incluir no final da resposta:</span>
+&lt;RALPH_COMPLETE&gt;
+
+<span class="comment"># Exemplo:</span>
+def minha_funcao():
+    """Docstring"""
+    pass
+
+<span class="comment"># Testes passaram ✅</span>
+&lt;RALPH_COMPLETE&gt;
+                </div>
+                
+                <h3>Agentes Super (V3)</h3>
+                <table>
+                    <tr>
+                        <th>Agente</th>
+                        <th>Slug</th>
+                        <th>Especialidade</th>
+                        <th>Quota</th>
+                    </tr>
+                    <tr>
+                        <td>O Dev</td>
+                        <td><code>o-dev</code></td>
+                        <td>Desenvolvimento Fullstack, DevOps, Arquitetura</td>
+                        <td>15/dia</td>
+                    </tr>
+                    <tr>
+                        <td>O Marketeiro</td>
+                        <td><code>o-marketeiro</code></td>
+                        <td>Marketing, Copywriting, Growth</td>
+                        <td>20/dia</td>
+                    </tr>
+                    <tr>
+                        <td>O Executivo</td>
+                        <td><code>o-executivo</code></td>
+                        <td>Gestão, Estratégia, Coordenação</td>
+                        <td>10/dia</td>
+                    </tr>
+                </table>
+                
+                <h3>Prompts dos Agentes</h3>
+                <p>Localização: <code>loops/prompts/&lt;agente&gt;-prompt.md</code></p>
+                
+                <div class="code-block">
+<span class="comment"># Estrutura do prompt:</span>
+1. Identidade do agente
+2. Princípios fundamentais (5-7 regras)
+3. Frameworks preferidos
+4. Regras de ouro (do's and don'ts)
+5. Canais de atuação
+6. Tom de comunicação
+7. <span class="keyword">REGRA CRÍTICA:</span> Nunca ficar em loop de perguntas
+8. Sinalização de conclusão (&lt;RALPH_COMPLETE&gt;)
+                </div>
+            </section>
+            
+            <!-- BANCO DE DADOS -->
+            <section id="banco-dados">
+                <h2>💾 Banco de Dados - SQLite</h2>
+                
+                <h3>Localização</h3>
+                <div class="code-block">
+~/.openclaw/workspace/projects/dunder-mifflin/dunder_mifflin.db
+                </div>
+                
+                <h3>Principais Tabelas</h3>
+                
+                <h4>1. ralph_loops</h4>
+                <p>Armazena todos os loops executados</p>
+                <table>
+                    <tr>
+                        <th>Coluna</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                    </tr>
+                    <tr>
+                        <td>id</td>
+                        <td>INTEGER PK</td>
+                        <td>ID único</td>
+                    </tr>
+                    <tr>
+                        <td>loop_code</td>
+                        <td>TEXT</td>
+                        <td>Código único (RALPH-XXXX)</td>
+                    </tr>
+                    <tr>
+                        <td>agent_slug</td>
+                        <td>TEXT</td>
+                        <td>Agente responsável</td>
+                    </tr>
+                    <tr>
+                        <td>task_description</td>
+                        <td>TEXT</td>
+                        <td>Descrição da tarefa</td>
+                    </tr>
+                    <tr>
+                        <td>status</td>
+                        <td>TEXT</td>
+                        <td>running/completed/failed</td>
+                    </tr>
+                    <tr>
+                        <td>current_iteration</td>
+                        <td>INTEGER</td>
+                        <td>Iteração atual</td>
+                    </tr>
+                    <tr>
+                        <td>max_iterations</td>
+                        <td>INTEGER</td>
+                        <td>Limite máximo</td>
+                    </tr>
+                    <tr>
+                        <td>iterations_log</td>
+                        <td>JSON</td>
+                        <td>Histórico detalhado</td>
+                    </tr>
+                    <tr>
+                        <td>total_tokens_in</td>
+                        <td>INTEGER</td>
+                        <td>Tokens de entrada</td>
+                    </tr>
+                    <tr>
+                        <td>total_tokens_out</td>
+                        <td>INTEGER</td>
+                        <td>Tokens de saída</td>
+                    </tr>
+                    <tr>
+                        <td>total_cost_usd</td>
+                        <td>REAL</td>
+                        <td>Custo total ($)</td>
+                    </tr>
+                    <tr>
+                        <td>result_path</td>
+                        <td>TEXT</td>
+                        <td>Caminho do arquivo resultado</td>
+                    </tr>
+                    <tr>
+                        <td>started_at</td>
+                        <td>DATETIME</td>
+                        <td>Início</td>
+                    </tr>
+                    <tr>
+                        <td>completed_at</td>
+                        <td>DATETIME</td>
+                        <td>Término</td>
+                    </tr>
+                </table>
+                
+                <h4>2. agents</h4>
+                <p>Cadastro de agentes disponíveis</p>
+                
+                <h4>3. missions</h4>
+                <p>Missões atribuídas aos agentes</p>
+                
+                <h3>Queries Úteis</h3>
+                <div class="code-block">
+<span class="comment">-- Listar loops completados hoje</span>
+<span class="keyword">SELECT</span> loop_code, agent_slug, current_iteration, total_cost_usd
+<span class="keyword">FROM</span> ralph_loops
+<span class="keyword">WHERE</span> status = <span class="string">'completed'</span>
+  <span class="keyword">AND</span> date(completed_at) = date(<span class="string">'now'</span>)
+<span class="keyword">ORDER BY</span> completed_at <span class="keyword">DESC</span>;
+
+<span class="comment">-- Custos por agente</span>
+<span class="keyword">SELECT</span> agent_slug, 
+       <span class="function">COUNT</span>(*) <span class="keyword">as</span> total,
+       <span class="function">SUM</span>(total_cost_usd) <span class="keyword">as</span> custo_total
+<span class="keyword">FROM</span> ralph_loops
+<span class="keyword">WHERE</span> status = <span class="string">'completed'</span>
+<span class="keyword">GROUP BY</span> agent_slug;
+                </div>
+            </section>
+            
+            <!-- API REST -->
+            <section id="api">
+                <h2>🔌 API REST - Endpoints</h2>
+                
+                <h3>Base URL</h3>
+                <div class="code-block">
+http://100.94.223.52:3003/api
+                </div>
+                
+                <h3>Endpoints Principais</h3>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method get">GET</span>
+                    <strong>/agents</strong>
+                    <p>Listar todos os agentes</p>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method get">GET</span>
+                    <strong>/missions</strong>
+                    <p>Listar missões (parâmetros: status, agent_id, limit)</p>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method post">POST</span>
+                    <strong>/missions</strong>
+                    <p>Criar nova missão</p>
+                    <div class="code-block">
+{
+  "agent_slug": "o-dev",
+  "title": "Nome da missão",
+  "description": "Descrição detalhada",
+  "priority": 5
+}
+                    </div>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method get">GET</span>
+                    <strong>/missions/&lt;id&gt;</strong>
+                    <p>Detalhes de uma missão</p>
+                </div>
+                
+                <h3>Endpoints Ralph Loop</h3>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method post">POST</span>
+                    <strong>/ralph/loop</strong>
+                    <p>Criar novo loop</p>
+                    <div class="code-block">
+{
+  "agent_slug": "o-dev",
+  "task_description": "Criar função Python...",
+  "max_iterations": 5,
+  "completion_promise": "RALPH_COMPLETE"
+}
+                    </div>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method get">GET</span>
+                    <strong>/ralph/loops/active</strong>
+                    <p>Listar loops em execução</p>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method get">GET</span>
+                    <strong>/ralph/loops/history?limit=50</strong>
+                    <p>Histórico de loops</p>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method get">GET</span>
+                    <strong>/ralph/results/&lt;arquivo&gt;</strong>
+                    <p>Download do arquivo de resultado</p>
+                </div>
+                
+                <div class="endpoint">
+                    <span class="endpoint-method get">GET</span>
+                    <strong>/ralph/costs/summary?days=7</strong>
+                    <p>Resumo de custos</p>
+                </div>
+                
+                <h3>Exemplos de Uso</h3>
+                <div class="code-block">
+<span class="comment"># Listar loops ativos</span>
+curl http://100.94.223.52:3003/api/ralph/loops/active
+
+<span class="comment"># Criar novo loop</span>
+curl -X POST http://100.94.223.52:3003/api/ralph/loop \
+  -H <span class="string">"Content-Type: application/json"</span> \
+  -d <span class="string">'{"agent_slug":"o-dev","task_description":"Criar função soma"}'</span>
+
+<span class="comment"># Baixar resultado</span>
+curl http://100.94.223.52:3003/api/ralph/results/RALPH-XXX_COMPLETED.md
+                </div>
+            </section>
+            
+            <!-- DEPLOY -->
+            <section id="deploy">
+                <h2>🚀 Deploy e Operação</h2>
+                
+                <h3>Inicialização Completa</h3>
+                <div class="code-block">
+<span class="comment"># 1. Iniciar API Flask (porta 3003)</span>
+cd ~/.openclaw/workspace/projects/dunder-mifflin
+python3 api_flask.py > /tmp/api.log 2>&1 &
+
+<span class="comment"># 2. Iniciar Frontend (porta 8888)</span>
+cd ~/.openclaw/workspace/projects/dunder-mifflin/frontend
+python3 -m http.server 8888 > /tmp/frontend.log 2>&1 &
+
+<span class="comment"># 3. Verificar se estão rodando</span>
+curl http://localhost:3003/api/agents | head
+curl http://localhost:8888/ | head
+                </div>
+                
+                <h3>Cron Jobs Configurados</h3>
+                <table>
+                    <tr>
+                        <th>Job</th>
+                        <th>Frequência</th>
+                        <th>Descrição</th>
+                    </tr>
+                    <tr>
+                        <td>Ralph Loop Executor</td>
+                        <td>A cada 5 min</td>
+                        <td>Processa loops pendentes</td>
+                    </tr>
+                    <tr>
+                        <td>Agentation Poller</td>
+                        <td>A cada 2 min</td>
+                        <td>Verifica anotações no dashboard</td>
+                    </tr>
+                    <tr>
+                        <td>Agent Worker</td>
+                        <td>A cada 5 min</td>
+                        <td>Processa tarefas do Studio</td>
+                    </tr>
+                </table>
+                
+                <h3>Troubleshooting</h3>
+                
+                <div class="warning">
+                    <strong>Problema:</strong> API não responde<br>
+                    <strong>Solução:</strong> Verificar se porta 3003 está livre: <code>lsof -i :3003</code>
+                </div>
+                
+                <div class="warning">
+                    <strong>Problema:</strong> Loops não executam<br>
+                    <strong>Solução:</strong> Verificar cron job: <code>openclaw cron list</code>
+                </div>
+                
+                <div class="warning">
+                    <strong>Problema:</strong> Agente fica perguntando ao invés de entregar<br>
+                    <strong>Solução:</strong> Verificar prompt em <code>loops/prompts/&lt;agente&gt;-prompt.md</code>
+                </div>
+                
+                <h3>Logs Importantes</h3>
+                <table>
+                    <tr>
+                        <th>Log</th>
+                        <th>Localização</th>
+                    </tr>
+                    <tr>
+                        <td>API Flask</td>
+                        <td><code>/tmp/api_flask.log</code></td>
+                    </tr>
+                    <tr>
+                        <td>Ralph Executor</td>
+                        <td><code>loops/logs/*.py.log</code></td>
+                    </tr>
+                    <tr>
+                        <td>Resultados</td>
+                        <td><code>loops/results/*.md</code></td>
+                    </tr>
+                </table>
+            </section>
+            
+            <!-- RESUMO -->
+            <section>
+                <h2>📊 Resumo do Sistema</h2>
+                
+                <div class="highlight">
+                    <h3>Estatísticas Atuais (10/02/2026)</h3>
+                    <ul>
+                        <li><strong>Total de Agentes:</strong> 63</li>
+                        <li><strong>Loops Processados:</strong> 17+</li>
+                        <li><strong>Taxa de Sucesso:</strong> ~80% (após correções)</li>
+                        <li><strong>Custo Médio por Loop:</strong> ~$0.002</li>
+                        <li><strong>Tempo Médio:</strong> 15-30s por iteração</li>
+                    </ul>
+                </div>
+                
+                <h3>Pontos Fortes</h3>
+                <ul>
+                    <li>✅ Iteração automática com tracking de custos</li>
+                    <li>✅ Múltiplos agentes especializados</li>
+                    <li>✅ Dashboard visual completo</li>
+                    <li>✅ API REST bem documentada</li>
+                    <li>✅ Persistência em SQLite (simples, portátil)</li>
+                </ul>
+                
+                <h3>Limitações Conhecidas</h3>
+                <ul>
+                    <li>⚠️ Respostas podem ser truncadas pelo kimi CLI</li>
+                    <li>⚠️ Agente precisa ser instruído a nÃo perguntar</li>
+                    <li>⚠️ Sem autenticação na API (uso interno)</li>
+                    <li>⚠️ SQLite não é ideal para alta concorrência</li>
+                </ul>
+            </section>
+        </main>
+        
+        <footer>
+            <p>Dunder Mifflin - Sistema de Gestão de Agentes AI</p>
+            <p>Documentação Técnica v1.0 | Gerado em 10/02/2026</p>
+        </footer>
+    </div>
+</body>
+</html>

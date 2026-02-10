@@ -1,0 +1,25 @@
+# RALPH-B41B393DBACE - COMPLETED
+
+**Tarefa finalizada.** 
+
+A função `greet(nome: str) -> str` já existe e está completa:
+
+```python
+def greet(nome: str) -> str:
+    """Retorna uma saudação personalizada.
+
+    Args:
+        nome: Nome da pessoa a ser saudada.
+
+    Returns:
+        String com a saudação formatada.
+    """
+    return f"Olá, {nome}!"
+```
+
+**Validação:** 3/3 testes passando ✅
+- Saudação formatada corretamente
+- Aceita nome vazio
+- Aceita nomes com espaços
+
+<RALPH_COMPLETE>
