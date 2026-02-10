@@ -1513,6 +1513,152 @@ def get_swarm_live_feed():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/swarm/agents/<agent_slug>/think', methods=['POST'])
+def agent_think(agent_slug):
+    """Faz um agent processar uma tarefa e retornar resposta"""
+    try:
+        from swarm.agent_brain import AgentBrain
+        
+        data = request.get_json()
+        if not data or 'task' not in data:
+            return jsonify({"error": "Campo 'task' é obrigatório"}), 400
+        
+        task = data['task']
+        context_channel = data.get('context_channel')
+        
+        # Criar cérebro do agent
+        brain = AgentBrain(agent_slug)
+        
+        # Executar tarefa
+        result = brain.think(task, context_channel)
+        
+        # Postar no canal apropriado
+        output_channels = {
+            'ralph': 'agent-chat',
+            'scout': 'find-output',
+            'max': 'build-output',
+            'maya': 'create-output',
+            'tracker': 'track-output',
+            'watcher': 'watch-output'
+        }
+        output_channel = output_channels.get(agent_slug, 'agent-chat')
+        
+        message = brain.post_to_channel(output_channel, result)
+        
+        return jsonify({
+            "success": True,
+            "agent": agent_slug,
+            "result": result,
+            "posted_to": output_channel,
+            "message_id": message.id if message else None
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/agents/<agent_slug>/memory', methods=['GET', 'PUT'])
+def agent_memory(agent_slug):
+    """GET: Lê memória do agent | PUT: Atualiza memória"""
+    try:
+        from swarm.agent_brain import AgentBrain
+        brain = AgentBrain(agent_slug)
+        
+        if request.method == 'GET':
+            return jsonify({
+                "agent": agent_slug,
+                "memory": brain.memory
+            })
+        
+        elif request.method == 'PUT':
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "Dados obrigatórios"}), 400
+            
+            for key, value in data.items():
+                brain.update_memory(key, value)
+            
+            return jsonify({
+                "success": True,
+                "agent": agent_slug,
+                "memory": brain.memory
+            })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/orchestrate', methods=['POST'])
+def orchestrate_task():
+    """
+    Orquestra uma tarefa completa com múltiplos agents.
+    Ralph analisa, delega e consolida.
+    """
+    try:
+        from swarm.agent_brain import AgentBrain
+        
+        data = request.get_json()
+        if not data or 'task' not in data:
+            return jsonify({"error": "Campo 'task' é obrigatório"}), 400
+        
+        task_description = data['task']
+        agents_to_spawn = data.get('agents', ['scout', 'max', 'maya'])
+        
+        # 1. Ralph cria plano
+        ralph = AgentBrain('ralph')
+        plan = ralph.think(
+            task=f"Criar plano para: {task_description}",
+            context_channel='orders'
+        )
+        
+        ralph.post_to_channel('agent-chat', f"📋 Novo plano criado:\n{plan}")
+        
+        # 2. Criar task no sistema
+        task = swarm_tasks.create_task(task_description, 'ralph')
+        swarm_tasks.update_execution_plan(task.id, {
+            'plan': plan,
+            'agents': agents_to_spawn
+        })
+        
+        # 3. Executar agents (simulação sequencial por enquanto)
+        results = {}
+        for agent_slug in agents_to_spawn:
+            brain = AgentBrain(agent_slug)
+            agent_task = f"Executar para: {task_description}"
+            result = brain.think(agent_task)
+            results[agent_slug] = result
+            
+            # Pequeno delay para simular processamento
+            import time
+            time.sleep(0.5)
+        
+        # 4. Ralph sintetiza
+        synthesis_input = "\n\n".join([
+            f"### {name}\n{content}" 
+            for name, content in results.items()
+        ])
+        
+        synthesis = ralph.think(
+            task=f"Sintetizar resultados:\n{synthesis_input}",
+            output_format="Crie uma entrega final consolidada e polida."
+        )
+        
+        # Postar síntese
+        ralph.post_to_channel('orders', synthesis, mentions=['Jeff'])
+        
+        # Finalizar task
+        swarm_tasks.set_final_output(task.id, synthesis)
+        
+        return jsonify({
+            "success": True,
+            "task_code": task.task_code,
+            "plan": plan,
+            "results": results,
+            "synthesis": synthesis
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
     print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
