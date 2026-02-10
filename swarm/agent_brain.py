@@ -16,6 +16,14 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from ralph_swarm_core import ChannelSystem, SwarmAgentManager, SwarmTaskManager, AuthorType
 
+# Import LLM Executor (optional, falls back to simulation)
+try:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from llm_executor import LLMExecutor, AGENT_MODELS
+    HAS_LLM_EXECUTOR = True
+except ImportError:
+    HAS_LLM_EXECUTOR = False
+
 # Paths
 AGENTS_DIR = Path(__file__).parent / "swarm" / "agents"
 MEMORY_DIR = Path(__file__).parent / "swarm" / "memory"
@@ -26,12 +34,20 @@ class AgentBrain:
     Responsável por processar mensagens e gerar respostas.
     """
     
-    def __init__(self, agent_slug: str):
+    def __init__(self, agent_slug: str, use_real_llm: bool = True):
         self.agent_slug = agent_slug
         self.agent_manager = SwarmAgentManager()
         self.channels = ChannelSystem()
         self.memory = self._load_memory()
         self.personality = self._load_personality()
+        
+        # Initialize LLM executor if available
+        self.llm_executor = None
+        if use_real_llm and HAS_LLM_EXECUTOR:
+            try:
+                self.llm_executor = LLMExecutor(max_parallel=3)
+            except Exception as e:
+                print(f"⚠️ Could not initialize LLM executor: {e}")
     
     def _load_personality(self) -> str:
         """Carrega arquivo de personalidade do agent"""
@@ -143,7 +159,7 @@ Execute agora:"""
         
         return prompt
     
-    def think(self, task: str, context_channel: str = None, output_format: str = "") -> str:
+    def think(self, task: str, context_channel: str = None, output_format: str = "", use_real_llm: bool = True) -> str:
         """
         Método principal: processa uma tarefa e gera resposta.
         
@@ -151,6 +167,7 @@ Execute agora:"""
             task: A tarefa a ser executada
             context_channel: Canal para ler contexto adicional
             output_format: Formato específico de output
+            use_real_llm: Se deve usar LLM real (False = simulação)
             
         Returns:
             Resposta gerada pelo agent
@@ -163,8 +180,30 @@ Execute agora:"""
         # Gerar prompt
         prompt = self.generate_prompt(task, context, output_format)
         
-        # Aqui chamaria o LLM real
-        # Por enquanto, retorna uma resposta simulada estruturada
+        # Tentar usar LLM real
+        if use_real_llm and self.llm_executor:
+            try:
+                call = self.llm_executor.execute_single(
+                    agent_slug=self.agent_slug,
+                    prompt=prompt
+                )
+                
+                if call.error:
+                    print(f"⚠️ LLM error for {self.agent_slug}: {call.error}")
+                    # Fallback to simulation
+                    return self._simulate_response(task)
+                
+                # Update memory with cost info
+                self.update_memory('last_cost', call.cost_usd)
+                self.update_memory('last_tokens', call.tokens_in + call.tokens_out)
+                
+                return call.response
+                
+            except Exception as e:
+                print(f"⚠️ LLM execution failed: {e}")
+                return self._simulate_response(task)
+        
+        # Fallback: simulação
         return self._simulate_response(task)
     
     def _simulate_response(self, task: str) -> str:

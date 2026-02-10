@@ -1738,6 +1738,36 @@ def process_swarm_orders():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/swarm/costs', methods=['GET'])
+def get_swarm_costs():
+    """Retorna tracking de custos de LLM"""
+    try:
+        from swarm.llm_executor import CostTracker
+        
+        tracker = CostTracker()
+        stats = tracker.get_stats()
+        
+        return jsonify({
+            "costs": stats,
+            "models": {
+                "gemini-flash": "Barato - Research/Copy",
+                "gemini-pro": "Médio - Análise complexa",
+                "kimi-k2": "Caro - Decisões estratégicas",
+                "claude-sonnet": "Médio - Código"
+            },
+            "agent_models": {
+                "ralph": "kimi-k2",
+                "scout": "gemini-flash",
+                "max": "claude-sonnet",
+                "maya": "gemini-flash",
+                "tracker": "gemini-flash",
+                "watcher": "gemini-flash"
+            }
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
     print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
