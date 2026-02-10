@@ -1833,4 +1833,20 @@ def synthesize_results():
 if __name__ == '__main__':
     port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
     print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
+    print(f"📊 Ralph Swarm Dashboard: http://localhost:{port}/swarm")
     app.run(host='0.0.0.0', port=port, debug=False)
+
+# Serve Ralph Swarm Dashboard
+@app.route('/swarm')
+def serve_swarm_dashboard():
+    """Serve o dashboard do Ralph Swarm"""
+    dashboard_path = Path(__file__).parent / 'swarm' / 'dashboard.html'
+    if dashboard_path.exists():
+        return send_file(dashboard_path)
+    else:
+        return jsonify({"error": "Dashboard not found"}), 404
+
+@app.route('/swarm/dashboard')
+def serve_swarm_dashboard_alt():
+    """Serve o dashboard do Ralph Swarm (alt route)"""
+    return serve_swarm_dashboard()
