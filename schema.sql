@@ -279,3 +279,118 @@ CREATE INDEX IF NOT EXISTS idx_orchestration_sessions_plan ON orchestration_sess
 CREATE INDEX IF NOT EXISTS idx_orchestration_sessions_status ON orchestration_sessions(status);
 CREATE INDEX IF NOT EXISTS idx_agent_messages_session ON agent_messages(session_id);
 CREATE INDEX IF NOT EXISTS idx_agent_messages_created ON agent_messages(created_at);
+
+-- ============================================================
+-- RALPH SWARM v5.0 - Sistema de Canais (Discord-style)
+-- ============================================================
+
+-- 1. SWARM_CHANNELS (Canais como no Discord)
+CREATE TABLE IF NOT EXISTS swarm_channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel_code TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    channel_type TEXT DEFAULT 'text',  -- text, voice, thread
+    description TEXT,
+    is_private BOOLEAN DEFAULT 0,
+    parent_channel_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (parent_channel_id) REFERENCES swarm_channels(id)
+);
+
+-- 2. SWARM_MESSAGES (Mensagens nos canais)
+CREATE TABLE IF NOT EXISTS swarm_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_code TEXT UNIQUE NOT NULL,
+    channel_id INTEGER NOT NULL,
+    author_type TEXT NOT NULL,  -- 'user', 'agent', 'system'
+    author_id TEXT NOT NULL,    -- user_id ou agent_slug
+    content TEXT NOT NULL,
+    mentions TEXT,              -- JSON array de mentions
+    thread_parent_id INTEGER,   -- Para threads
+    attachments TEXT,           -- JSON array de anexos
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    edited_at DATETIME,
+    FOREIGN KEY (channel_id) REFERENCES swarm_channels(id),
+    FOREIGN KEY (thread_parent_id) REFERENCES swarm_messages(id)
+);
+
+-- 3. SWARM_AGENTS (Agents do sistema swarm)
+CREATE TABLE IF NOT EXISTS swarm_agents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_slug TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL,         -- coordinator, find, build, create, track, watch
+    model_tier TEXT DEFAULT 'medium',  -- cheap, medium, expensive
+    personality TEXT,
+    avatar_emoji TEXT DEFAULT '🤖',
+    memory TEXT,                -- JSON com memória do agent
+    status TEXT DEFAULT 'idle', -- idle, busy, offline
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_active_at DATETIME
+);
+
+-- 4. SWARM_TASKS (Tarefas em execução)
+CREATE TABLE IF NOT EXISTS swarm_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_code TEXT UNIQUE NOT NULL,
+    original_request TEXT NOT NULL,
+    coordinator_agent_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending',  -- pending, planning, running, synthesizing, completed, failed
+    execution_plan TEXT,            -- JSON com plano
+    final_output TEXT,
+    cost_usd REAL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    started_at DATETIME,
+    completed_at DATETIME,
+    FOREIGN KEY (coordinator_agent_id) REFERENCES swarm_agents(id)
+);
+
+-- 5. SWARM_TASK_AGENTS (Relação many-to-many tasks <-> agents)
+CREATE TABLE IF NOT EXISTS swarm_task_agents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL,
+    agent_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending',  -- pending, running, completed, failed
+    output TEXT,
+    started_at DATETIME,
+    completed_at DATETIME,
+    FOREIGN KEY (task_id) REFERENCES swarm_tasks(id),
+    FOREIGN KEY (agent_id) REFERENCES swarm_agents(id)
+);
+
+-- Seed Swarm Channels
+INSERT OR IGNORE INTO swarm_channels (channel_code, name, channel_type, description) VALUES
+    ('orders', 'orders', 'text', 'Entrada de tarefas do usuário'),
+    ('agent-chat', 'agent-chat', 'text', 'Coordenação entre agents'),
+    ('find-output', 'find-output', 'text', 'Resultados do agent Find'),
+    ('find-logs', 'find-logs', 'text', 'Logs do agent Find'),
+    ('find-memory', 'find-memory', 'text', 'Memória do agent Find'),
+    ('build-output', 'build-output', 'text', 'Resultados do agent Build'),
+    ('build-logs', 'build-logs', 'text', 'Logs do agent Build'),
+    ('build-memory', 'build-memory', 'text', 'Memória do agent Build'),
+    ('create-output', 'create-output', 'text', 'Resultados do agent Create'),
+    ('create-logs', 'create-logs', 'text', 'Logs do agent Create'),
+    ('create-memory', 'create-memory', 'text', 'Memória do agent Create'),
+    ('track-output', 'track-output', 'text', 'Resultados do agent Track'),
+    ('watch-output', 'watch-output', 'text', 'Resultados do agent Watch'),
+    ('drop-links', 'drop-links', 'text', 'Links para research automático'),
+    ('live-feed', 'live-feed', 'text', 'Atividade em tempo real'),
+    ('memory', 'memory', 'text', 'Memória compartilhada da equipe');
+
+-- Seed Swarm Agents
+INSERT OR IGNORE INTO swarm_agents (agent_slug, name, role, model_tier, personality, avatar_emoji) VALUES
+    ('ralph', 'Ralph', 'coordinator', 'expensive', 'Gestor estratégico focado em resultados', '🎩'),
+    ('scout', 'Scout', 'find', 'cheap', 'Researcher rápido e curioso', '🔍'),
+    ('max', 'Max', 'build', 'medium', 'Builder pragmático, entrega código que funciona', '🛠️'),
+    ('maya', 'Maya', 'create', 'cheap', 'Copywriter persuasiva, entende marketing', '📝'),
+    ('tracker', 'Tracker', 'track', 'cheap', 'Analista de métricas e dados', '📊'),
+    ('watcher', 'Watcher', 'watch', 'cheap', 'Observador de tendências e concorrentes', '👁️');
+
+-- Indexes para Swarm
+CREATE INDEX IF NOT EXISTS idx_swarm_messages_channel ON swarm_messages(channel_id);
+CREATE INDEX IF NOT EXISTS idx_swarm_messages_author ON swarm_messages(author_id);
+CREATE INDEX IF NOT EXISTS idx_swarm_messages_created ON swarm_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_swarm_tasks_status ON swarm_tasks(status);
+CREATE INDEX IF NOT EXISTS idx_swarm_task_agents_task ON swarm_task_agents(task_id);
+CREATE INDEX IF NOT EXISTS idx_swarm_task_agents_agent ON swarm_task_agents(agent_id);

@@ -1200,6 +1200,319 @@ def get_ralph_result(filename):
         return jsonify({"error": str(e)}), 500
 
 
+# ============================================================
+# RALPH SWARM v5.0 - Endpoints
+# ============================================================
+
+from ralph_swarm_core import ChannelSystem, SwarmAgentManager, SwarmTaskManager, AuthorType, TaskStatus
+
+# Instanciar gerenciadores
+swarm_channels = ChannelSystem()
+swarm_agents = SwarmAgentManager()
+swarm_tasks = SwarmTaskManager()
+
+@app.route('/api/swarm/channels', methods=['GET'])
+def get_swarm_channels():
+    """Lista todos os canais do swarm"""
+    try:
+        channels = swarm_channels.get_channels()
+        
+        # Adicionar contagem de mensagens para cada canal
+        for ch in channels:
+            ch['message_count'] = swarm_channels.get_message_count(ch['name'])
+        
+        return jsonify({
+            "channels": channels,
+            "count": len(channels)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/channels/<channel_name>', methods=['GET'])
+def get_swarm_channel(channel_name):
+    """Retorna detalhes de um canal específico"""
+    try:
+        channel_id = swarm_channels.get_channel_id(channel_name)
+        if not channel_id:
+            return jsonify({"error": f"Canal '{channel_name}' não encontrado"}), 404
+        
+        channels = swarm_channels.get_channels()
+        channel = next((c for c in channels if c['id'] == channel_id), None)
+        
+        if channel:
+            channel['message_count'] = swarm_channels.get_message_count(channel_name)
+        
+        return jsonify({"channel": channel})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/channels/<channel_name>/messages', methods=['GET'])
+def get_swarm_messages(channel_name):
+    """Retorna mensagens de um canal"""
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        before_id = request.args.get('before_id', type=int)
+        
+        messages = swarm_channels.read(channel_name, limit=limit, before_id=before_id)
+        
+        return jsonify({
+            "channel": channel_name,
+            "messages": [m.to_dict() for m in messages],
+            "count": len(messages)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/channels/<channel_name>/post', methods=['POST'])
+def post_swarm_message(channel_name):
+    """Posta mensagem em um canal"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'content' not in data:
+            return jsonify({"error": "Campo 'content' é obrigatório"}), 400
+        
+        author_type = data.get('author_type', 'user')
+        author_id = data.get('author_id', 'anonymous')
+        content = data['content']
+        mentions = data.get('mentions', [])
+        
+        # Validar author_type
+        try:
+            author_type_enum = AuthorType(author_type)
+        except ValueError:
+            return jsonify({"error": f"author_type inválido: {author_type}"}), 400
+        
+        message = swarm_channels.post(
+            channel_name=channel_name,
+            author_type=author_type_enum,
+            author_id=author_id,
+            content=content,
+            mentions=mentions
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": message.to_dict()
+        })
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/channels/<channel_name>/search', methods=['GET'])
+def search_swarm_messages(channel_name):
+    """Busca mensagens em um canal"""
+    try:
+        query = request.args.get('q')
+        limit = request.args.get('limit', 20, type=int)
+        
+        if not query:
+            return jsonify({"error": "Parâmetro 'q' é obrigatório"}), 400
+        
+        messages = swarm_channels.search(channel_name, query, limit=limit)
+        
+        return jsonify({
+            "channel": channel_name,
+            "query": query,
+            "messages": [m.to_dict() for m in messages],
+            "count": len(messages)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/agents', methods=['GET'])
+def get_swarm_agents():
+    """Lista todos os agents do swarm"""
+    try:
+        agents = swarm_agents.get_all_agents()
+        
+        return jsonify({
+            "agents": [a.to_dict() for a in agents],
+            "count": len(agents)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/agents/<agent_slug>', methods=['GET'])
+def get_swarm_agent(agent_slug):
+    """Retorna detalhes de um agent específico"""
+    try:
+        agent = swarm_agents.get_agent(agent_slug)
+        
+        if not agent:
+            return jsonify({"error": f"Agent '{agent_slug}' não encontrado"}), 404
+        
+        return jsonify({"agent": agent.to_dict()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/agents/<agent_slug>/status', methods=['PUT'])
+def update_swarm_agent_status(agent_slug):
+    """Atualiza status de um agent"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'status' not in data:
+            return jsonify({"error": "Campo 'status' é obrigatório"}), 400
+        
+        swarm_agents.update_status(agent_slug, data['status'])
+        
+        return jsonify({
+            "success": True,
+            "message": f"Status de '{agent_slug}' atualizado para '{data['status']}'"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/tasks', methods=['GET'])
+def get_swarm_tasks():
+    """Lista tarefas do swarm"""
+    try:
+        # Por padrão, retorna apenas tarefas ativas
+        active_only = request.args.get('active', 'true').lower() == 'true'
+        
+        if active_only:
+            tasks = swarm_tasks.get_active_tasks()
+        else:
+            # Retornar todas (implementação simplificada)
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT t.id FROM swarm_tasks
+                ORDER BY created_at DESC LIMIT 100
+            """)
+            rows = cur.fetchall()
+            conn.close()
+            tasks = [swarm_tasks.get_task(row['id']) for row in rows]
+        
+        return jsonify({
+            "tasks": [t.to_dict() for t in tasks if t],
+            "count": len(tasks)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/tasks', methods=['POST'])
+def create_swarm_task():
+    """Cria nova tarefa no swarm"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'request' not in data:
+            return jsonify({"error": "Campo 'request' é obrigatório"}), 400
+        
+        original_request = data['request']
+        coordinator = data.get('coordinator', 'ralph')
+        
+        task = swarm_tasks.create_task(
+            original_request=original_request,
+            coordinator_agent_slug=coordinator
+        )
+        
+        # Postar no canal orders
+        swarm_channels.post(
+            channel_name='orders',
+            author_type=AuthorType.USER,
+            author_id='api',
+            content=original_request,
+            mentions=[coordinator]
+        )
+        
+        return jsonify({
+            "success": True,
+            "task": task.to_dict()
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/tasks/<task_code>', methods=['GET'])
+def get_swarm_task(task_code):
+    """Retorna detalhes de uma tarefa"""
+    try:
+        task = swarm_tasks.get_task_by_code(task_code)
+        
+        if not task:
+            return jsonify({"error": f"Task '{task_code}' não encontrada"}), 404
+        
+        return jsonify({"task": task.to_dict()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/dashboard', methods=['GET'])
+def get_swarm_dashboard():
+    """Retorna dados do dashboard"""
+    try:
+        # Resumo do dia
+        today_summary = swarm_tasks.get_today_summary()
+        
+        # Agents ativos
+        agents = swarm_agents.get_all_agents()
+        
+        # Canais com atividade
+        channels = swarm_channels.get_channels()
+        for ch in channels:
+            ch['message_count'] = swarm_channels.get_message_count(ch['name'])
+        
+        # Tarefas ativas
+        active_tasks = swarm_tasks.get_active_tasks()
+        
+        return jsonify({
+            "today": today_summary,
+            "agents": {
+                "total": len(agents),
+                "active": len([a for a in agents if a.status == 'idle']),
+                "busy": len([a for a in agents if a.status == 'busy'])
+            },
+            "channels": sorted(channels, key=lambda x: x['message_count'], reverse=True)[:10],
+            "active_tasks": len(active_tasks),
+            "pending_tasks": len([t for t in active_tasks if t.status == 'pending'])
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/live-feed', methods=['GET'])
+def get_swarm_live_feed():
+    """Retorna feed de atividade ao vivo"""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        
+        # Pegar mensagens recentes dos canais principais
+        feed = []
+        
+        for channel_name in ['orders', 'agent-chat', 'find-output', 'build-output', 'create-output']:
+            messages = swarm_channels.read(channel_name, limit=5)
+            for msg in messages:
+                feed.append({
+                    'time': msg.created_at.strftime('%H:%M') if msg.created_at else '--:--',
+                    'channel': channel_name,
+                    'agent': msg.author_id,
+                    'action': msg.content[:100] + ('...' if len(msg.content) > 100 else '')
+                })
+        
+        # Ordenar por hora (mais recente primeiro)
+        feed.sort(key=lambda x: x['time'], reverse=True)
+        
+        return jsonify({
+            "feed": feed[:limit],
+            "count": len(feed[:limit])
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
     print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
