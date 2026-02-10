@@ -1659,6 +1659,85 @@ def orchestrate_task():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/swarm/coordinate', methods=['POST'])
+def coordinate_swarm_smart():
+    """
+    Coordenação inteligente do swarm.
+    Ralph analisa a tarefa, decide a estratégia e executa.
+    """
+    try:
+        from swarm.coordination_engine import SwarmCoordinator
+        
+        data = request.get_json()
+        if not data or 'task' not in data:
+            return jsonify({"error": "Campo 'task' é obrigatório"}), 400
+        
+        task_description = data['task']
+        auto_execute = data.get('auto_execute', True)
+        
+        # Criar coordenador
+        coordinator = SwarmCoordinator()
+        
+        # 1. Ralph analisa a tarefa
+        plan = coordinator.analyze_task(task_description)
+        
+        # 2. Criar task no sistema
+        task = swarm_tasks.create_task(task_description, 'ralph')
+        swarm_tasks.update_execution_plan(task.id, plan.to_dict())
+        
+        if not auto_execute:
+            # Apenas retornar o plano para aprovação
+            return jsonify({
+                "success": True,
+                "task_code": task.task_code,
+                "plan": plan.to_dict(),
+                "message": "Plano criado. Use auto_execute=true para executar."
+            })
+        
+        # 3. Executar o swarm
+        result = coordinator.execute_swarm(task_description, plan, task.id)
+        
+        return jsonify({
+            "success": True,
+            "task_code": task.task_code,
+            "plan": plan.to_dict(),
+            "execution": result
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
+@app.route('/api/swarm/process-orders', methods=['POST'])
+def process_swarm_orders():
+    """
+    Processa mensagens pendentes em #orders.
+    Endpoint para execução contínua/background.
+    """
+    try:
+        from swarm.coordination_engine import SwarmCoordinator
+        
+        coordinator = SwarmCoordinator()
+        result = coordinator.process_orders()
+        
+        if result:
+            return jsonify({
+                "success": True,
+                "processed": True,
+                "result": result
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "processed": False,
+                "message": "Nenhuma mensagem pendente em #orders"
+            })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
     print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
