@@ -1,0 +1,2 @@
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-10T17:24:56.713357", "tokens_in": 444, "tokens_out": 3, "cost_usd": 0.000912, "duration_ms": 1046, "success": true, "error": null}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-10T17:27:12.011685", "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0, "duration_ms": 0, "success": false, "error": "[Errno 2] No such file or directory: 'kimi'"}

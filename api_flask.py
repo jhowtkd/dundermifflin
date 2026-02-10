@@ -1768,6 +1768,68 @@ def get_swarm_costs():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/swarm/synthesize', methods=['POST'])
+def synthesize_results():
+    """
+    Síntese avançada de resultados.
+    Consolida outputs de múltiplos agents em entrega final.
+    """
+    try:
+        from swarm.synthesis_engine import SynthesisEngine, SynthesisConfig, SynthesisQuality, AgentOutput
+        
+        data = request.get_json()
+        if not data or 'task' not in data or 'outputs' not in data:
+            return jsonify({"error": "Campos 'task' e 'outputs' são obrigatórios"}), 400
+        
+        task = data['task']
+        outputs_data = data['outputs']
+        
+        # Configuração opcional
+        quality_str = data.get('quality', 'standard')
+        quality = SynthesisQuality(quality_str)
+        
+        config = SynthesisConfig(
+            quality=quality,
+            max_length=data.get('max_length', 2000),
+            include_action_items=data.get('include_actions', True),
+            include_metrics=data.get('include_metrics', True),
+            tone=data.get('tone', 'professional'),
+            format=data.get('format', 'markdown')
+        )
+        
+        # Converter outputs
+        outputs = [
+            AgentOutput(
+                agent_slug=out['agent_slug'],
+                agent_name=out.get('agent_name', out['agent_slug']),
+                role=out.get('role', 'unknown'),
+                content=out['content'],
+                tokens_used=out.get('tokens', 0),
+                confidence=out.get('confidence', 1.0)
+            )
+            for out in outputs_data
+        ]
+        
+        # Executar síntese
+        engine = SynthesisEngine()
+        result = engine.synthesize(task, outputs, config)
+        
+        # Formatar para entrega
+        format_type = data.get('format', 'markdown')
+        formatted = engine.format_for_delivery(result, format_type)
+        
+        return jsonify({
+            "success": True,
+            "result": result.to_dict(),
+            "formatted": formatted,
+            "format": format_type
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
     print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
