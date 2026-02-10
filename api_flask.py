@@ -1846,6 +1846,103 @@ def serve_swarm_dashboard_alt():
     return serve_swarm_dashboard()
 
 
+# Ralph Swarm Always On endpoints
+always_on_manager = None
+
+@app.route('/api/swarm/always-on/status', methods=['GET'])
+def get_always_on_status():
+    """Retorna status do sistema Always On"""
+    try:
+        from swarm.always_on import AlwaysOnManager
+        
+        global always_on_manager
+        if always_on_manager is None:
+            always_on_manager = AlwaysOnManager()
+        
+        status = always_on_manager.get_status()
+        
+        return jsonify({
+            "success": True,
+            "status": status
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/always-on/start', methods=['POST'])
+def start_always_on():
+    """Inicia o sistema Always On"""
+    try:
+        from swarm.always_on import AlwaysOnManager
+        
+        global always_on_manager
+        if always_on_manager is None:
+            always_on_manager = AlwaysOnManager()
+        
+        if always_on_manager.running:
+            return jsonify({
+                "success": True,
+                "message": "Always On já está rodando",
+                "running": True
+            })
+        
+        always_on_manager.start()
+        
+        return jsonify({
+            "success": True,
+            "message": "Always On iniciado com sucesso",
+            "running": True
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/always-on/stop', methods=['POST'])
+def stop_always_on():
+    """Para o sistema Always On"""
+    try:
+        global always_on_manager
+        if always_on_manager is None or not always_on_manager.running:
+            return jsonify({
+                "success": True,
+                "message": "Always On não está rodando",
+                "running": False
+            })
+        
+        always_on_manager.stop()
+        
+        return jsonify({
+            "success": True,
+            "message": "Always On parado",
+            "running": False
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/swarm/always-on/trigger', methods=['POST'])
+def trigger_always_on_job():
+    """Dispara um job manualmente"""
+    try:
+        from swarm.always_on import AlwaysOnManager
+        
+        data = request.get_json()
+        job_type = data.get('job_type', 'heartbeat')
+        
+        global always_on_manager
+        if always_on_manager is None:
+            always_on_manager = AlwaysOnManager()
+        
+        always_on_manager.trigger_now(job_type)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Job {job_type} disparado"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.getenv("DM_API_PORT", str(DEFAULT_API_PORT)))
     print(f"🚀 Dunder Mifflin API (Flask) rodando em http://localhost:{port}")
