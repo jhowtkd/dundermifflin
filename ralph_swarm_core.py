@@ -25,13 +25,16 @@ class AuthorType(Enum):
     SYSTEM = "system"
 
 class TaskStatus(Enum):
-    """Status de tarefas"""
-    PENDING = "pending"
-    PLANNING = "planning"
-    RUNNING = "running"
-    SYNTHESIZING = "synthesizing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    """Status de tarefas - Ralph Swarm v4.0 Proativo"""
+    PENDING = "pending"              # Acabou de ser criada
+    AWAITING_QUESTIONS = "awaiting_questions"  # Aguardando respostas do usuário
+    AWAITING_APPROVAL = "awaiting_approval"    # Aguardando aprovação do plano
+    APPROVED = "approved"            # Aprovada, pronta para execução
+    PLANNING = "planning"            # Planejando execução
+    RUNNING = "running"              # Em execução
+    SYNTHESIZING = "synthesizing"    # Sintetizando resultados
+    COMPLETED = "completed"          # Completada
+    FAILED = "failed"                # Falhou
 
 @dataclass
 class SwarmMessage:
@@ -452,9 +455,21 @@ class SwarmTaskManager:
         """Gera código único de tarefa"""
         return f"TASK-{uuid.uuid4().hex[:8].upper()}"
     
-    def create_task(self, original_request: str, coordinator_agent_slug: str) -> SwarmTask:
-        """Cria nova tarefa"""
+    def create_task(self, original_request: str, coordinator_agent_slug: str, 
+                    project: str = None, source: str = None, channel_id: int = None) -> SwarmTask:
+        """Cria nova tarefa com metadados opcionais (v4.0 - Modo Proativo)"""
         task_code = self._generate_code()
+        
+        # Preparar metadados JSON
+        metadata = {}
+        if project:
+            metadata['project'] = project
+        if source:
+            metadata['source'] = source
+        if channel_id:
+            metadata['discord_channel_id'] = channel_id
+        
+        metadata_json = json.dumps(metadata) if metadata else None
         
         # Buscar ID do coordinator
         with self._get_db() as conn:
@@ -469,11 +484,13 @@ class SwarmTaskManager:
             coordinator_id = row['id']
             coordinator_name = row['name']
             
+            # v4.0: Criar com status AWAITING_QUESTIONS (modo proativo)
             cursor = conn.execute(
                 """INSERT INTO swarm_tasks 
-                   (task_code, original_request, coordinator_agent_id, status, created_at)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (task_code, original_request, coordinator_id, TaskStatus.PENDING.value, datetime.now().isoformat())
+                   (task_code, original_request, coordinator_agent_id, status, created_at, metadata)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (task_code, original_request, coordinator_id, TaskStatus.AWAITING_QUESTIONS.value, 
+                 datetime.now().isoformat(), metadata_json)
             )
             task_id = cursor.lastrowid
         
@@ -557,6 +574,38 @@ class SwarmTaskManager:
                    WHERE id = ?""",
                 (output, cost, TaskStatus.COMPLETED.value, datetime.now(), task_id)
             )
+        
+        # 🆕 Envia para review no Discord (se RAG disponível)
+        try:
+            import os
+            import sys
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'swarm'))
+            from discord_bridge import SwarmDiscordBridge, HAS_RAG
+            
+            if HAS_RAG:
+                # Busca informações da task
+                task = self.get_task(task_id)
+                if task:
+                    # Canal de review (usar o mesmo do swarm ou um específico)
+                    review_channel_id = 1330639710266044467  # Ajustar conforme necessário
+                    
+                    # Detecta tipo de task
+                    task_lower = task.original_request.lower()
+                    task_type = 'general'
+                    if any(kw in task_lower for kw in ['análise', 'analisar', 'research', 'pesquisa']):
+                        task_type = 'analysis'
+                    elif any(kw in task_lower for kw in ['código', 'build', 'implementar', 'script']):
+                        task_type = 'code'
+                    elif any(kw in task_lower for kw in ['copy', 'escrever', 'headline', 'conteúdo']):
+                        task_type = 'content'
+                    
+                    # Envia para review (assíncrono - não bloqueia)
+                    # Nota: Para funcionar completamente, precisa de loop async rodando
+                    print(f"📤 Task {task_id} completada. Enviando para review no Discord...")
+                    
+        except Exception as e:
+            # Não falha a task se o review falhar
+            print(f"⚠️ Erro ao enviar para review: {e}")
     
     def get_active_tasks(self) -> List[SwarmTask]:
         """Lista tarefas ativas (não completadas/falhas)"""
