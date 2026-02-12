@@ -24,6 +24,13 @@ try:
 except ImportError:
     HAS_LLM_EXECUTOR = False
 
+# Import RAG Memory
+try:
+    from rag_memory import get_rag_memory, get_context_for_task
+    HAS_RAG = True
+except ImportError:
+    HAS_RAG = False
+
 # Paths
 AGENTS_DIR = Path(__file__).parent / "swarm" / "agents"
 MEMORY_DIR = Path(__file__).parent / "swarm" / "memory"
@@ -33,14 +40,14 @@ class AgentBrain:
     Cérebro de um agent do Swarm.
     Responsável por processar mensagens e gerar respostas.
     """
-    
+
     def __init__(self, agent_slug: str, use_real_llm: bool = True):
         self.agent_slug = agent_slug
         self.agent_manager = SwarmAgentManager()
         self.channels = ChannelSystem()
         self.memory = self._load_memory()
         self.personality = self._load_personality()
-        
+
         # Initialize LLM executor if available
         self.llm_executor = None
         if use_real_llm and HAS_LLM_EXECUTOR:
@@ -48,55 +55,55 @@ class AgentBrain:
                 self.llm_executor = LLMExecutor(max_parallel=3)
             except Exception as e:
                 print(f"⚠️ Could not initialize LLM executor: {e}")
-    
+
     def _load_personality(self) -> str:
         """Carrega arquivo de personalidade do agent"""
         personality_file = AGENTS_DIR / f"{self.agent_slug}.md"
-        
+
         if personality_file.exists():
             with open(personality_file, 'r', encoding='utf-8') as f:
                 return f.read()
-        
+
         # Personalidade padrão se arquivo não existir
         return f"""# {self.agent_slug.title()}
 
 Você é um agent do Ralph Swarm.
 Seja direto, objetivo e sempre entregue valor.
 """
-    
+
     def _load_memory(self) -> Dict:
         """Carrega memória do agent do banco"""
         agent = self.agent_manager.get_agent(self.agent_slug)
         if agent and agent.memory:
             return agent.memory
         return {}
-    
+
     def _save_memory(self):
         """Salva memória no banco"""
         self.agent_manager.update_memory(self.agent_slug, self.memory)
-    
+
     def update_memory(self, key: str, value: any):
         """Atualiza memória do agent"""
         self.memory[key] = value
         self._save_memory()
-    
+
     def get_context_from_channel(self, channel_name: str, limit: int = 10) -> str:
         """Lê contexto recente de um canal"""
         messages = self.channels.read(channel_name, limit=limit)
-        
+
         if not messages:
             return "Nenhuma mensagem recente."
-        
+
         context_lines = []
         for msg in reversed(messages):  # Mais antigas primeiro
             context_lines.append(f"[{msg.author_id}] {msg.content}")
-        
+
         return "\n".join(context_lines)
-    
+
     def should_respond(self, message_content: str, mentions: List[str]) -> bool:
         """
         Decide se o agent deve responder a uma mensagem.
-        
+
         Responde quando:
         - É mencionado diretamente
         - É o coordinator (Ralph) e não há menção específica
@@ -105,11 +112,11 @@ Seja direto, objetivo e sempre entregue valor.
         # Se mencionado diretamente
         if self.agent_slug in mentions:
             return True
-        
+
         # Ralph responde a menções gerais ou mensagens sem menção específica
         if self.agent_slug == 'ralph':
             return True
-        
+
         # Palavras-chave específicas por agent
         keywords = {
             'scout': ['research', 'pesquisa', 'analisar', 'concorrentes', 'benchmark'],
@@ -118,25 +125,25 @@ Seja direto, objetivo e sempre entregue valor.
             'tracker': ['métricas', 'analytics', 'kpi', 'dados', 'performance'],
             'watcher': ['monitorar', 'observar', 'tendências', 'concorrentes']
         }
-        
+
         agent_keywords = keywords.get(self.agent_slug, [])
         message_lower = message_content.lower()
-        
+
         for kw in agent_keywords:
             if kw in message_lower:
                 return True
-        
+
         return False
-    
+
     def generate_prompt(self, task: str, context: str = "", output_format: str = "") -> str:
         """Gera prompt completo para o LLM"""
-        
+
         # Memória relevante
         memory_str = ""
         if self.memory:
             memory_items = [f"- {k}: {v}" for k, v in list(self.memory.items())[:5]]
             memory_str = "\n".join(memory_items)
-        
+
         prompt = f"""{self.personality}
 
 ## Memória Atual
@@ -156,30 +163,42 @@ Seja direto, objetivo e sempre entregue valor.
 {output_format}
 
 Execute agora:"""
-        
+
         return prompt
-    
-    def think(self, task: str, context_channel: str = None, output_format: str = "", use_real_llm: bool = True) -> str:
+
+    def think(self, task: str, context_channel: str = None, output_format: str = "", use_real_llm: bool = True, project: str = "default") -> str:
         """
         Método principal: processa uma tarefa e gera resposta.
-        
+
         Args:
             task: A tarefa a ser executada
             context_channel: Canal para ler contexto adicional
             output_format: Formato específico de output
             use_real_llm: Se deve usar LLM real (False = simulação)
-            
+            project: Nome do projeto (para contexto RAG)
+
         Returns:
             Resposta gerada pelo agent
         """
-        # Coletar contexto se especificado
+        # Coletar contexto do canal se especificado
         context = ""
         if context_channel:
             context = self.get_context_from_channel(context_channel)
-        
-        # Gerar prompt
-        prompt = self.generate_prompt(task, context, output_format)
-        
+
+        # 🆕 Buscar contexto RAG (exemplos e erros)
+        rag_context = ""
+        if HAS_RAG:
+            try:
+                task_type = self._detect_task_type(task)
+                rag_context = get_context_for_task(task_type, project, task)
+                if rag_context:
+                    print(f"🧠 RAG: Contexto carregado para {self.agent_slug} ({task_type})")
+            except Exception as e:
+                print(f"⚠️ RAG error: {e}")
+
+        # Gerar prompt com contexto RAG
+        prompt = self.generate_prompt(task, context, output_format, rag_context)
+
         # Tentar usar LLM real
         if use_real_llm and self.llm_executor:
             try:
@@ -187,28 +206,47 @@ Execute agora:"""
                     agent_slug=self.agent_slug,
                     prompt=prompt
                 )
-                
+
                 if call.error:
                     print(f"⚠️ LLM error for {self.agent_slug}: {call.error}")
                     # Fallback to simulation
                     return self._simulate_response(task)
-                
+
                 # Update memory with cost info
                 self.update_memory('last_cost', call.cost_usd)
                 self.update_memory('last_tokens', call.tokens_in + call.tokens_out)
-                
+
                 return call.response
-                
+
             except Exception as e:
                 print(f"⚠️ LLM execution failed: {e}")
                 return self._simulate_response(task)
-        
+
         # Fallback: simulação
         return self._simulate_response(task)
-    
+
+    def _detect_task_type(self, task: str) -> str:
+        """
+        Detecta o tipo de task baseado no conteúdo.
+        Usado para buscar exemplos relevantes no RAG.
+        """
+        task_lower = task.lower()
+        
+        # Palavras-chave por tipo
+        if any(kw in task_lower for kw in ['análise', 'analisar', 'research', 'pesquisa', 'benchmark', 'concorrentes', 'métricas']):
+            return 'analysis'
+        elif any(kw in task_lower for kw in ['código', 'build', 'implementar', 'script', 'landing page', 'api', 'desenvolver']):
+            return 'code'
+        elif any(kw in task_lower for kw in ['copy', 'escrever', 'headline', 'linkedin', 'thread', 'marketing', 'conteúdo']):
+            return 'content'
+        elif any(kw in task_lower for kw in ['planejar', 'estratégia', 'coordenar', 'orquestrar']):
+            return 'planning'
+        else:
+            return 'general'
+
     def _simulate_response(self, task: str) -> str:
         """Simula resposta do agent (substituir por chamada LLM real)"""
-        
+
         responses = {
             'ralph': f"""📋 Plano de execução:
   • Scout (find) - Research e análise de mercado
@@ -218,7 +256,7 @@ Execute agora:"""
 Estratégia: Research paralelo com desenvolvimento base, depois refinamento conjunto.
 
 \u003cRALPH_COMPLETE\u003e""",
-            
+
             'scout': f"""🔍 RESEARCH RESULTS
 
 ## Análise de Mercado
@@ -240,7 +278,7 @@ Encontrados 15 concorrentes diretos e 8 indiretos.
 • Focar em onboarding rápido
 
 \u003cRALPH_COMPLETE\u003e""",
-            
+
             'max': f"""🛠️ BUILD RESULTS
 
 ## O que foi construído
@@ -267,7 +305,7 @@ python3 -m http.server 8000
 ```
 
 \u003cRALPH_COMPLETE\u003e""",
-            
+
             'maya': f"""📝 COPY RESULTS
 
 ## Contexto
@@ -298,7 +336,7 @@ Você já perdeu horas tentando organizar seu trabalho?
 • CTA primário remove barreira ("grátis")
 
 \u003cRALPH_COMPLETE\u003e""",
-            
+
             'tracker': f"""📊 ANALYTICS RESULTS
 
 ## Resumo Executivo
@@ -324,7 +362,7 @@ Tráfego estável com leve crescimento. Conversão acima da média do setor.
 3. Monitorar retenção de trial users
 
 \u003cRALPH_COMPLETE\u003e""",
-            
+
             'watcher': f"""👁️ WATCH RESULTS
 
 ## O que foi observado
@@ -350,9 +388,9 @@ Positivo para ferramentas all-in-one. Críticas sobre complexidade excessiva.
 
 \u003cRALPH_COMPLETE\u003e"""
         }
-        
+
         return responses.get(self.agent_slug, f"✅ Tarefa executada por {self.agent_slug}\n\n\u003cRALPH_COMPLETE\u003e")
-    
+
     def post_to_channel(self, channel_name: str, content: str, mentions: List[str] = None):
         """Posta mensagem em um canal"""
         return self.channels.post(
@@ -362,31 +400,31 @@ Positivo para ferramentas all-in-one. Críticas sobre complexidade excessiva.
             content=content,
             mentions=mentions or []
         )
-    
+
     def handle_message(self, message: Dict) -> Optional[str]:
         """
         Processa uma mensagem recebida.
-        
+
         Args:
             message: Dict com 'content', 'mentions', 'channel'
-            
+
         Returns:
             Resposta do agent ou None se não deve responder
         """
         content = message.get('content', '')
         mentions = message.get('mentions', [])
         channel = message.get('channel', '')
-        
+
         # Decidir se deve responder
         if not self.should_respond(content, mentions):
             return None
-        
+
         # Processar e gerar resposta
         response = self.think(
             task=content,
             context_channel=channel if channel != 'orders' else None
         )
-        
+
         # Extrair canal de output baseado no role
         output_channels = {
             'ralph': 'agent-chat',
@@ -396,17 +434,17 @@ Positivo para ferramentas all-in-one. Críticas sobre complexidade excessiva.
             'tracker': 'track-output',
             'watcher': 'watch-output'
         }
-        
+
         output_channel = output_channels.get(self.agent_slug, 'agent-chat')
-        
+
         # Postar resposta
         self.post_to_channel(output_channel, response)
-        
+
         # Se não for Ralph, avisar no agent-chat
         if self.agent_slug != 'ralph':
             handoff_msg = f"✅ {self.agent_slug.title()} completou.\n   Resultado em #{output_channel}\n   @ralph"
             self.post_to_channel('agent-chat', handoff_msg, mentions=['ralph'])
-        
+
         return response
 
 
@@ -415,19 +453,19 @@ class SwarmOrchestrator:
     Orquestrador do Swarm.
     Coordena a execução de tarefas entre múltiplos agents.
     """
-    
+
     def __init__(self):
         self.channels = ChannelSystem()
         self.agents = SwarmAgentManager()
         self.tasks = SwarmTaskManager()
         self.brains: Dict[str, AgentBrain] = {}
-    
+
     def get_brain(self, agent_slug: str) -> AgentBrain:
         """Obtém ou cria cérebro de um agent"""
         if agent_slug not in self.brains:
             self.brains[agent_slug] = AgentBrain(agent_slug)
         return self.brains[agent_slug]
-    
+
     def process_orders(self):
         """
         Processa mensagens pendentes em #orders.
@@ -435,48 +473,48 @@ class SwarmOrchestrator:
         """
         # Ler mensagens não processadas de #orders
         messages = self.channels.read('orders', limit=10)
-        
+
         for msg in messages:
             # Só processar mensagens de usuários
             if msg.author_type != 'user':
                 continue
-            
+
             print(f"📨 Processando mensagem de {msg.author_id}: {msg.content[:50]}...")
-            
+
             # Ralph analisa e decide
             ralph = self.get_brain('ralph')
-            
+
             # Simular decisão de Ralph
             plan = ralph.think(
                 task=f"Analisar e criar plano para: {msg.content}",
                 context_channel='orders'
             )
-            
+
             # Postar plano no agent-chat
             ralph.post_to_channel('agent-chat', plan, mentions=['scout', 'max', 'maya'])
-            
+
             # TODO: Executar agents em paralelo
             # Por enquanto, simular execução sequencial
-            
+
             print(f"   ✅ Plano criado por Ralph")
-    
+
     def run_single_task(self, task_description: str, agent_slug: str = 'scout') -> str:
         """Executa uma tarefa única com um agent"""
         brain = self.get_brain(agent_slug)
-        
+
         # Atualizar status para busy
         self.agents.update_status(agent_slug, 'busy')
-        
+
         # Executar
         result = brain.think(task_description)
-        
+
         # Atualizar memória
         brain.update_memory('last_task', task_description)
         brain.update_memory('last_run', str(datetime.now()))
-        
+
         # Voltar para idle
         self.agents.update_status(agent_slug, 'idle')
-        
+
         return result
 
 
@@ -484,23 +522,23 @@ class SwarmOrchestrator:
 if __name__ == '__main__':
     print("🧠 Agent Brain System - Teste")
     print("=" * 50)
-    
+
     # Testar cérebro individual
     scout = AgentBrain('scout')
     print("\n1. Testando Scout:")
     response = scout.think("Research concorrentes de SaaS de produtividade")
     print(response[:200] + "...")
-    
+
     # Testar memória
     print("\n2. Testando memória:")
     scout.update_memory('trusted_sources', ['g2.com', 'capterra.com'])
     print(f"   Memória salva: {scout.memory}")
-    
+
     # Testar Maya
     maya = AgentBrain('maya')
     print("\n3. Testando Maya:")
     response = maya.think("Criar copy para landing page de produtividade")
     print(response[:200] + "...")
-    
+
     print("\n" + "=" * 50)
     print("✅ Todos os testes passaram!")
