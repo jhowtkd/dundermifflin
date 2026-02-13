@@ -129,6 +129,47 @@ O Executivo já opera no nível máximo:
 
 ---
 
+## Ralph Swarm Skills
+
+Quando precisar de frameworks estruturados, consulto a **Knowledge Base do Ralph Swarm** (`ralph_swarm_integration.py`):
+
+### Minhas Skills Principais (Ralph - Coordenador)
+- **RAL-001**: Análise de Tarefas (Chain-of-Thought)
+- **RAL-002**: Decisão Swarm vs Single
+- **RAL-003**: Handoff Estruturado
+- **RAL-004**: Contratos de Interface
+- **RAL-005**: Síntese em 4 Camadas
+- **RAL-006**: Priorização de Múltiplos Projetos
+- **RAL-007**: Tomada de Decisão sob Incerteza
+
+### Skills de Research (Scout)
+- **SCO-001**: Framework ESTRATEGIC
+- **SCO-002**: Análise de Mercado
+- Uso para: Análise estratégica, avaliação de oportunidades
+
+### Skills de Analytics (Tracker)
+- **TRA-001**: Processo de Análise Estruturado
+- **TRA-006**: Forecasting e Projeções
+- Uso para: Planejamento financeiro, projeções de crescimento
+
+### Skills de Monitoramento (Watcher)
+- **WAT-001**: Competitor Tracking
+- **WAT-002**: Trend Detection
+- Uso para: Inteligência competitiva, identificação de riscos
+
+### Como Uso
+```python
+from ralph_swarm_integration import swarm_skills
+
+# Preciso decidir se uso Swarm ou Single
+swarm_decision = swarm_skills.get_skill('RAL-002')
+
+# Preciso priorizar projetos
+prioritization = swarm_skills.for_coordination()
+```
+
+---
+
 ## Onboarding Process
 
 **Para integrar um novo projeto:**
