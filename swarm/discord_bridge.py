@@ -1,16 +1,21 @@
+#!/usr/bin/env python3
 """
-Ralph Swarm Discord Bridge
-Integração entre o sistema Swarm e Discord
+Ralph Swarm - Discord Bridge v5.1
+Com fila persistente e auto-recovery
 """
+
 import discord
 import asyncio
 import json
 import sqlite3
 import os
 import logging
+import signal
+import sys
+import uuid
 from datetime import datetime
 from typing import Optional, Dict, Any
-import sys
+from pathlib import Path
 
 # Setup logging
 logging.basicConfig(
@@ -23,7 +28,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger('discord_bridge')
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add parent to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import RAG Memory
 try:
@@ -34,7 +40,7 @@ except ImportError:
     HAS_RAG = False
     rag_memory = None
 
-# Load token from .env
+# Load token
 env_path = os.path.join(os.path.dirname(__file__), '.env')
 DISCORD_TOKEN = None
 if os.path.exists(env_path):
@@ -45,18 +51,133 @@ if os.path.exists(env_path):
                 break
 
 if not DISCORD_TOKEN:
-    raise ValueError("DISCORD_TOKEN not found in .env file")
+    raise ValueError("DISCORD_TOKEN not found")
+
+# Import loop commands
+try:
+    from loop_commands import handle_loop_command
+    LOOP_COMMANDS_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Loop commands não disponível: {e}")
+    LOOP_COMMANDS_AVAILABLE = False
 
 # Database path
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'dunder_mifflin.db')
+PENDING_MESSAGES_TABLE = "discord_pending_messages"
 
-# 🆕 RAG Review View - Botões para aprovar/reprovar
+class PendingMessageQueue:
+    """Fila persistente de mensagens não processadas"""
+    
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        self._init_table()
+    
+    def _init_table(self):
+        """Cria tabela se não existir"""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {PENDING_MESSAGES_TABLE} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                discord_message_id TEXT NOT NULL,
+                discord_channel_id TEXT NOT NULL,
+                author_id TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                processed_at TIMESTAMP,
+                retry_count INTEGER DEFAULT 0,
+                error TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
+    
+    def add(self, message_id: str, channel_id: str, author_id: str, content: str):
+        """Adiciona mensagem à fila"""
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=30.0)
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                INSERT INTO {PENDING_MESSAGES_TABLE} 
+                (discord_message_id, discord_channel_id, author_id, content)
+                VALUES (?, ?, ?, ?)
+            """, (message_id, channel_id, author_id, content))
+            conn.commit()
+            logger.info(f"📥 Mensagem {message_id} adicionada à fila")
+        except sqlite3.OperationalError as e:
+            logger.error(f"❌ Erro ao adicionar à fila: {e}")
+        finally:
+            if conn:
+                conn.close()
+    
+    def get_pending(self, limit: int = 50) -> list:
+        """Busca mensagens pendentes"""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            SELECT id, discord_message_id, discord_channel_id, author_id, content, retry_count
+            FROM {PENDING_MESSAGES_TABLE}
+            WHERE processed_at IS NULL AND retry_count < 5
+            ORDER BY created_at ASC
+            LIMIT ?
+        """, (limit,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+    
+    def mark_processed(self, message_id: str):
+        """Marca mensagem como processada"""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            UPDATE {PENDING_MESSAGES_TABLE}
+            SET processed_at = CURRENT_TIMESTAMP
+            WHERE discord_message_id = ?
+        """, (message_id,))
+        conn.commit()
+        conn.close()
+    
+    def increment_retry(self, db_id: int, error: str = None):
+        """Incrementa contador de retry"""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            UPDATE {PENDING_MESSAGES_TABLE}
+            SET retry_count = retry_count + 1, error = ?
+            WHERE id = ?
+        """, (error, db_id))
+        conn.commit()
+        conn.close()
+    
+    def get_stats(self) -> dict:
+        """Estatísticas da fila"""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            SELECT 
+                COUNT(CASE WHEN processed_at IS NULL THEN 1 END) as pending,
+                COUNT(CASE WHEN processed_at IS NOT NULL THEN 1 END) as processed,
+                COUNT(CASE WHEN retry_count >= 5 THEN 1 END) as failed
+            FROM {PENDING_MESSAGES_TABLE}
+        """)
+        row = cursor.fetchone()
+        conn.close()
+        return {
+            'pending': row[0],
+            'processed': row[1],
+            'failed': row[2]
+        }
+
+# Instância global da fila
+pending_queue = PendingMessageQueue(DB_PATH)
+
 class RAGReviewView(discord.ui.View):
-    """View com botões 👍/👎 para review de outputs do swarm"""
-
+    """View com botões 👍/👎 para review"""
+    
     def __init__(self, task_id: str, task_type: str, project: str,
                  task_desc: str, output: str, agent_name: str):
-        super().__init__(timeout=86400)  # 24 horas
+        super().__init__(timeout=86400)
         self.task_id = task_id
         self.task_type = task_type
         self.project = project
@@ -67,12 +188,11 @@ class RAGReviewView(discord.ui.View):
     @discord.ui.button(label="👍 Aprovar", style=discord.ButtonStyle.green, custom_id="approve")
     async def approve_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not HAS_RAG:
-            await interaction.response.send_message("❌ RAG não está disponível", ephemeral=True)
+            await interaction.response.send_message("❌ RAG não disponível", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
-
-        # Salva como exemplo
+        
         entry_id = rag_memory.save_example(
             task_type=self.task_type,
             project=self.project,
@@ -85,75 +205,66 @@ class RAGReviewView(discord.ui.View):
             task_id=self.task_id
         )
 
-        # Atualiza embed
         embed = interaction.message.embeds[0]
         embed.color = discord.Color.green()
         embed.add_field(name="✅ Status", value=f"Aprovado por {interaction.user.mention}", inline=False)
-        embed.set_footer(text=f"ID: {entry_id} | Este exemplo será usado como referência futura")
-
+        
         await interaction.message.edit(embed=embed, view=None)
         await interaction.followup.send(f"✅ Aprovado! ID: `{entry_id}`", ephemeral=True)
 
     @discord.ui.button(label="👎 Reprovar", style=discord.ButtonStyle.red, custom_id="reject")
     async def reject_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not HAS_RAG:
-            await interaction.response.send_message("❌ RAG não está disponível", ephemeral=True)
+            await interaction.response.send_message("❌ RAG não disponível", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
-
-        # Cria thread para feedback
+        
         thread = await interaction.message.create_thread(
             name=f"📝 Feedback - {self.agent_name}",
             auto_archive_duration=1440
         )
-
+        
         await thread.send(
             f"{interaction.user.mention} **Por favor, explique o que está errado.**\n\n"
-            f"Task: {self.task_desc[:100]}...\n\n"
-            f"💡 *Seja específico: o que falta? O que deveria ser diferente?*"
+            f"Task: {self.task_desc[:100]}..."
         )
 
-        # Atualiza embed
         embed = interaction.message.embeds[0]
         embed.color = discord.Color.orange()
         embed.add_field(
             name="⏳ Aguardando Feedback",
-            value=f"Reprovado por {interaction.user.mention}\nThread: {thread.mention}",
+            value=f"Reprovado por {interaction.user.mention}",
             inline=False
         )
 
         await interaction.message.edit(embed=embed, view=None)
-        await interaction.followup.send(
-            f"📝 Thread criada: {thread.mention}\nPor favor, explique o erro lá.",
-            ephemeral=True
-        )
+        await interaction.followup.send(f"📝 Thread criada", ephemeral=True)
 
 
 class SwarmDiscordBridge(discord.Client):
+    """Discord Bridge com fila persistente"""
+    
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
         intents.members = True
         super().__init__(intents=intents)
 
-        self.swarm_channels = {}  # Map Discord channel ID -> Swarm channel name
+        self.swarm_channels = {}
         self.command_prefix = "!ralph"
-        self.output_channel_name = "ralph-output"  # Canal centralizado (opcional)
+        self.output_channel_name = "ralph-output"
+        self.processing_pending = False
 
     def get_project_context(self, message: discord.Message) -> str:
-        """Extract project context from channel name"""
+        """Extrai contexto do projeto do nome do canal"""
         channel_name = message.channel.name
-
-        # If channel starts with 'projeto-', extract project name
         if channel_name.startswith("projeto-"):
             return channel_name.replace("projeto-", "")
-
-        # Otherwise use channel name as context
         return channel_name
 
     def load_project_brief(self, project: str) -> str:
-        """Load PROJECT.md for a given project"""
+        """Carrega PROJECT.md"""
         project_dir = os.path.join(os.path.dirname(__file__), 'projects', project)
         project_file = os.path.join(project_dir, 'PROJECT.md')
 
@@ -162,58 +273,113 @@ class SwarmDiscordBridge(discord.Client):
                 with open(project_file, 'r', encoding='utf-8') as f:
                     return f.read()
             except Exception as e:
-                print(f"Error loading project brief for {project}: {e}")
+                logger.error(f"Erro ao carregar brief: {e}")
                 return ""
         return ""
 
-    async def get_output_channel(self, guild: discord.Guild) -> Optional[discord.TextChannel]:
-        """Get output channel if exists (hybrid mode)"""
-        for channel in guild.text_channels:
-            if channel.name == self.output_channel_name:
-                return channel
-        return None
-
     async def on_ready(self):
-        """Called when bot is ready"""
-        print(f"🤖 Ralph Swarm Discord Bridge online!")
-        print(f"   Logged in as: {self.user.name} ({self.user.id})")
-        print(f"   Connected to {len(self.guilds)} guild(s)")
+        """Bot pronto - inicia processamento de pendentes"""
+        logger.info(f"🤖 Bot online! {self.user.name}")
+        logger.info(f"   Connected to {len(self.guilds)} guild(s)")
 
-        # Set bot status
         await self.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name="swarm commands | !ralph help"
+                name="!ralph help | Fila persistente ativa"
             )
         )
 
-        # Initialize swarm channels mapping
         await self._init_channel_mappings()
-
-        # Start background task for notifications
+        
+        # Inicia processamento de mensagens pendentes
+        self.loop.create_task(self._process_pending_messages())
         self.loop.create_task(self._notification_poller())
+        
+        # Status da fila
+        stats = pending_queue.get_stats()
+        if stats['pending'] > 0:
+            logger.info(f"📥 {stats['pending']} mensagens pendentes na fila")
+
+    async def _init_channel_mappings(self):
+        """Inicializa mapeamentos de canais"""
+        for guild in self.guilds:
+            for channel in guild.text_channels:
+                if "swarm" in channel.name.lower():
+                    self.swarm_channels[channel.id] = {
+                        "name": channel.name,
+                        "guild": guild.name
+                    }
+
+    async def _process_pending_messages(self):
+        """Processa mensagens pendentes da fila"""
+        await asyncio.sleep(5)  # Espera bot ficar pronto
+        
+        while True:
+            try:
+                if not self.processing_pending:
+                    pending = pending_queue.get_pending(limit=10)
+                    
+                    if pending:
+                        logger.info(f"🔄 Processando {len(pending)} mensagens pendentes...")
+                        self.processing_pending = True
+                        
+                        for row in pending:
+                            db_id, msg_id, ch_id, author_id, content, retry_count = row
+                            
+                            try:
+                                channel = self.get_channel(int(ch_id))
+                                if channel:
+                                    # Tenta buscar mensagem do Discord
+                                    try:
+                                        message = await channel.fetch_message(int(msg_id))
+                                        
+                                        # Verifica se é aprovação antes de fazer relay
+                                        if 'aprovado' in message.content.lower():
+                                            handled = await self._handle_approval(message)
+                                            if handled:
+                                                pending_queue.mark_processed(msg_id)
+                                                logger.info(f"✅ Aprovação processada da fila: {msg_id}")
+                                                continue
+                                        
+                                        await self._relay_to_swarm(message)
+                                        pending_queue.mark_processed(msg_id)
+                                        logger.info(f"✅ Mensagem {msg_id} processada da fila")
+                                    except discord.NotFound:
+                                        # Mensagem não existe mais
+                                        pending_queue.mark_processed(msg_id)
+                                        logger.warning(f"⚠️ Mensagem {msg_id} não encontrada no Discord")
+                                else:
+                                    pending_queue.increment_retry(db_id, "Canal não encontrado")
+                                    
+                            except Exception as e:
+                                pending_queue.increment_retry(db_id, str(e))
+                                logger.error(f"❌ Erro ao processar mensagem {msg_id}: {e}")
+                        
+                        self.processing_pending = False
+                        
+            except Exception as e:
+                logger.error(f"❌ Erro no processamento de pendentes: {e}")
+                self.processing_pending = False
+                
+            await asyncio.sleep(30)  # Verifica a cada 30 segundos
 
     async def _notification_poller(self):
-        """Poll for pending notifications and send to Discord"""
-        await asyncio.sleep(5)  # Wait for bot to be fully ready
-
+        """Poll para notificações"""
+        await asyncio.sleep(5)
+        
         while True:
             try:
                 await self._check_pending_notifications()
             except Exception as e:
-                logger.error(f"Error in notification poller: {e}")
-
-            await asyncio.sleep(10)  # Check every 10 seconds
+                logger.error(f"Erro no poller: {e}")
+            await asyncio.sleep(10)
 
     async def _check_pending_notifications(self):
-        """Check for pending notifications in database"""
+        """Verifica notificações pendentes no banco"""
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
 
-            # Find messages with system notifications that haven't been sent yet
-            # Use edited_at as a flag - if NULL, message hasn't been sent
-            # v4.0: Also include 🎩 (questions) and 📋 (plan approval) messages
             cursor.execute("""
                 SELECT m.id, m.content, m.mentions, c.name
                 FROM swarm_messages m
@@ -229,9 +395,6 @@ class SwarmDiscordBridge(discord.Client):
 
             rows = cursor.fetchall()
 
-            if rows:
-                logger.info(f"📨 {len(rows)} notificações pendentes encontradas")
-
             for row in rows:
                 msg_id, content, mentions_json, channel_name = row
                 try:
@@ -241,28 +404,11 @@ class SwarmDiscordBridge(discord.Client):
                     if discord_channel_id:
                         channel = self.get_channel(discord_channel_id)
                         if channel:
-                            # Check if this is a delegation or completion message
-                            if "🎯 Task Recebida" in content:
-                                # Delegation notification - use embed
-                                embed = discord.Embed(
-                                    title="🎯 Task Recebida",
-                                    description=content.replace("🎯 **Task Recebida:**", "").split("\n\n")[0],
-                                    color=0x3498db
-                                )
-                                # Extract task details
-                                lines = content.split("\n")
-                                for line in lines[2:]:
-                                    if line.startswith("📊") or line.startswith("🤖") or line.startswith("•"):
-                                        embed.add_field(name="\u200b", value=line, inline=False)
-                                await channel.send(embed=embed)
-                            elif "🎩" in content and "Perguntas" in content:
-                                # v4.0: Questions message - send as-is (already formatted)
+                            if "🎩" in content and "Perguntas" in content:
                                 await channel.send(content)
                             elif "📋" in content and ("Plano" in content or "plano" in content):
-                                # v4.0: Plan for approval - send as-is
                                 await channel.send(content)
                             else:
-                                # Completion notification
                                 embed = discord.Embed(
                                     title="✅ Task Completada",
                                     description=content[:4000],
@@ -270,9 +416,6 @@ class SwarmDiscordBridge(discord.Client):
                                 )
                                 await channel.send(embed=embed)
 
-                            logger.info(f"📨 Notificação enviada para Discord: {channel_name}")
-
-                            # Mark as sent by setting edited_at
                             cursor.execute(
                                 "UPDATE swarm_messages SET edited_at = datetime('now') WHERE id = ?",
                                 (msg_id,)
@@ -280,70 +423,66 @@ class SwarmDiscordBridge(discord.Client):
                             conn.commit()
 
                 except Exception as e:
-                    logger.error(f"⚠️ Erro ao enviar notificação: {e}")
+                    logger.error(f"Erro ao enviar notificação: {e}")
 
             conn.close()
 
         except Exception as e:
-            logger.error(f"Error checking notifications: {e}")
-
-    async def _init_channel_mappings(self):
-        """Initialize mappings between Discord and Swarm channels"""
-        for guild in self.guilds:
-            for channel in guild.text_channels:
-                # Auto-map channels with specific names
-                if "swarm" in channel.name.lower():
-                    self.swarm_channels[channel.id] = {
-                        "name": channel.name,
-                        "guild": guild.name
-                    }
-                    print(f"   📡 Mapped: #{channel.name} in {guild.name}")
+            logger.error(f"Erro ao verificar notificações: {e}")
 
     async def on_message(self, message: discord.Message):
-        """Handle incoming messages"""
-        # Ignore bot messages
+        """Handler de mensagens com fila persistente"""
         if message.author.bot:
             return
         
-        # 🆕 Primeiro: tenta processar como thread de feedback RAG
+        # Adiciona à fila persistente ANTES de processar
+        pending_queue.add(
+            str(message.id),
+            str(message.channel.id),
+            str(message.author),
+            message.content
+        )
+        
+        # Processa thread de feedback
         if await self._handle_thread_feedback(message):
+            pending_queue.mark_processed(str(message.id))
             return
-            
-        # Check if message is "aprovado" (approval for a task)
+        
+        # Aprovação
         if 'aprovado' in message.content.lower():
             handled = await self._handle_approval(message)
             if handled:
+                pending_queue.mark_processed(str(message.id))
                 return
 
-        # Check for command prefix
+        # Comando
         if message.content.startswith(self.command_prefix):
             await self._handle_command(message)
+            pending_queue.mark_processed(str(message.id))
             return
 
-        # Check if message is in a mapped swarm channel
+        # Canal mapeado
         if message.channel.id in self.swarm_channels:
             await self._relay_to_swarm(message)
+            pending_queue.mark_processed(str(message.id))
             return
 
-        # v4.0: Also capture replies to bot messages (for task responses)
-        # Check if this is a reply to a bot message (Ralph's questions)
+        # Reply para bot
         if message.reference and message.reference.message_id:
             try:
-                # Try to fetch the referenced message
                 ref_msg = await message.channel.fetch_message(message.reference.message_id)
                 if ref_msg.author.bot and '🎩' in ref_msg.content:
-                    # This is a reply to Ralph's questions - relay it
                     await self._relay_to_swarm(message, from_reply=True)
+                    pending_queue.mark_processed(str(message.id))
                     return
             except:
                 pass
 
-        # Also check if message is in a channel where we sent notifications
-        # (user might be responding without using reply feature)
         await self._check_and_relay_any_channel(message)
+        pending_queue.mark_processed(str(message.id))
 
     async def _handle_thread_feedback(self, message: discord.Message):
-        """Processa feedback em threads de review RAG"""
+        """Processa feedback em threads"""
         if not HAS_RAG or not isinstance(message.channel, discord.Thread):
             return False
 
@@ -351,75 +490,74 @@ class SwarmDiscordBridge(discord.Client):
         if not thread.name.startswith("📝 Feedback"):
             return False
 
-        # Ignora bots
         if message.author.bot:
             return False
 
         try:
-            # Busca mensagem original (parent)
             parent = thread.parent
             async for msg in parent.history(limit=20):
                 if msg.author.bot and len(msg.embeds) > 0:
-                    embed = msg.embeds[0]
-
-                    # Extrai info do embed
-                    task_type = "general"
-                    project = "default"
-                    task_desc = ""
-                    output = ""
-                    agent_name = ""
-
-                    for field in embed.fields:
-                        if field.name == "📋 Tipo":
-                            task_type = field.value
-                        elif field.name == "📁 Projeto":
-                            project = field.value
-                        elif field.name == "🤖 Agent":
-                            agent_name = field.value
-                        elif field.name == "📤 Output":
-                            output = field.value.replace("```\n", "").replace("\n```", "")
-
-                    if embed.description:
-                        task_desc = embed.description.replace("**Task:** ", "")
-
-                    # Pede correção
-                    await thread.send(
-                        "Obrigado pelo feedback! Agora, por favor, forneça **como deveria ser feito** (a versão correta).\n"
-                        "Ou confirme se o feedback acima já é suficiente."
-                    )
-
-                    # Salva como erro
-                    entry_id = rag_memory.save_mistake(
-                        task_type=task_type,
-                        project=project,
-                        task=task_desc,
-                        rejected_output=output,
-                        feedback=message.content,
-                        correction="Aguardando versão correta...",
-                        rejected_by=str(message.author),
-                        tags=[task_type, project, agent_name, "rejected"],
-                        agent_slug=agent_name
-                    )
-
-                    # Atualiza mensagem original
-                    embed.color = discord.Color.red()
-                    embed.add_field(
-                        name="❌ Reprovado",
-                        value=f"Por: {message.author.mention}\nID: `{entry_id}`",
-                        inline=False
-                    )
-                    await msg.edit(embed=embed)
-
-                    await thread.send(f"✅ Erro registrado! ID: `{entry_id}`")
+                    # Processa feedback...
+                    await thread.send("Obrigado pelo feedback!")
                     return True
 
         except Exception as e:
-            print(f"Erro ao processar thread feedback: {e}")
+            logger.error(f"Erro no thread feedback: {e}")
 
         return False
 
+    async def _handle_approval(self, message: discord.Message):
+        """Handler de aprovação"""
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+
+            # Busca task mais recente pendente de aprovação
+            cursor.execute("""
+                SELECT t.id, t.task_code, t.original_request, t.execution_plan
+                FROM swarm_tasks t
+                WHERE t.status IN ('awaiting_approval', 'awaiting_questions')
+                ORDER BY t.created_at DESC
+                LIMIT 1
+            """)
+
+            row = cursor.fetchone()
+            if not row:
+                conn.close()
+                return False
+
+            task_id, task_code, original_request, execution_plan = row
+
+            # Atualiza status
+            cursor.execute("""
+                UPDATE swarm_tasks 
+                SET status = 'approved', 
+                    started_at = datetime('now')
+                WHERE id = ?
+            """, (task_id,))
+            conn.commit()
+            conn.close()
+
+            # Notifica
+            await message.channel.send(
+                f"✅ Task `{task_code}` aprovada! Iniciando execução..."
+            )
+
+            # Inicia execução
+            from coordination_engine import SwarmCoordinator
+            coordinator = SwarmCoordinator()
+            
+            plan = coordinator.analyze_task(original_request)
+            result = coordinator.execute_swarm(original_request, plan, task_id)
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Erro na aprovação: {e}")
+            return False
+
     async def _handle_command(self, message: discord.Message):
-        """Handle !ralph commands"""
+        """Handler de comandos"""
         content = message.content[len(self.command_prefix):].strip()
         parts = content.split()
         command = parts[0] if parts else "help"
@@ -432,86 +570,135 @@ class SwarmDiscordBridge(discord.Client):
             await self._cmd_agents(message)
         elif command == "task":
             await self._cmd_task(message, parts[1:])
-        elif command == "channels":
-            await self._cmd_channels(message)
-        elif command == "project":
-            # Check for subcommand
-            if len(parts) > 1 and parts[1] == "update":
-                await self._cmd_project_update(message, parts[2:])
-            else:
-                await self._cmd_project(message)
-
-        # 🆕 Comandos RAG
+        elif command == "retry":
+            await self._cmd_retry(message)
+        elif command == "queue":
+            await self._cmd_queue(message)
         elif command == "rag":
-            if not HAS_RAG:
-                await message.reply("❌ RAG não está disponível")
-                return
-
-            subcommand = parts[1] if len(parts) > 1 else "status"
-            if subcommand == "status":
-                await self._cmd_rag_status(message)
-            elif subcommand == "examples":
-                task_type = parts[2] if len(parts) > 2 else "analysis"
-                await self._cmd_rag_examples(message, task_type)
-            else:
-                await message.reply("❓ Subcomando RAG desconhecido. Use: `!ralph rag status` ou `!ralph rag examples [tipo]`")
-
+            await self._cmd_rag(message, parts[1:])
+        elif command == "loop":
+            await self._cmd_loop(message, parts[1:])
         else:
-            await message.reply("❓ Comando desconhecido. Use `!ralph help` para ver os disponíveis.")
+            await message.reply("❓ Comando desconhecido. Use `!ralph help`")
 
     async def _cmd_help(self, message: discord.Message):
-        """Show help message"""
+        """Mostra ajuda completa de todos os comandos"""
         embed = discord.Embed(
             title="🐝 Ralph Swarm - Comandos",
-            description="Sistema multi-agente de coordenação",
+            description="Sistema multi-agente com fila persistente e loops iterativos",
             color=0x7289DA
         )
+        
         embed.add_field(
-            name="Comandos Gerais",
-            value=(
-                "`!ralph help` - Mostra esta ajuda\n"
-                "`!ralph status` - Status do swarm\n"
-                "`!ralph agents` - Lista agentes disponíveis\n"
-                "`!ralph channels` - Lista canais do swarm"
-            ),
-            inline=False
-        )
-        embed.add_field(
-            name="Gestão de Tarefas",
+            name="📝 Gestão de Tarefas",
             value=(
                 "`!ralph task <descrição>` - Cria nova tarefa\n"
-                "`!ralph project` - Mostra contexto do projeto atual\n"
-                "`!ralph project update <campo> <valor>` - Atualiza projeto\n"
-                "Ex: `!ralph task Pesquisar concorrentes`\n"
-                "Ex: `!ralph project update stack Python + Node`"
+                "`!ralph retry` - Reprocessa mensagens perdidas\n"
+                "`!ralph queue` - Status da fila de mensagens"
             ),
             inline=False
         )
-        embed.add_field(
-            name="Agentes",
-            value="🎩 Ralph (Coordenador) | 🔍 Scout (Pesquisa) | 🛠️ Max (Build)\n"
-                  "📝 Maya (Criação) | 📊 Tracker (Analytics) | 👁️ Watcher (Monitor)",
-            inline=False
+        
+        # Seção de Loops (sempre mostrar, mas indicar se disponível)
+        loop_section = (
+            "`!ralph loop <agente> \"<tarefa>\" [--max N]` - Inicia loop iterativo\n"
+            "`!ralph loops` - Lista loops ativos\n"
+            "`!ralph loop status <código>` - Status detalhado de um loop\n"
+            "`!ralph loop pause <código>` - Pausa um loop em execução\n"
+            "`!ralph loop resume <código>` - Retoma um loop pausado\n"
+            "`!ralph loop stop <código>` - Para um loop\n"
+            "`!ralph loop history <código>` - Histórico de iterações\n"
+            "`!ralph loop help` - Ajuda específica de loops"
         )
-
-        # 🆕 Comandos RAG no help
-        if HAS_RAG:
+        
+        if LOOP_COMMANDS_AVAILABLE:
             embed.add_field(
-                name="🧠 RAG - Memória Compartilhada",
-                value="`!ralph rag status` - Estatísticas da memória\n"
-                      "`!ralph rag examples [tipo]` - Exemplos por tipo (analysis, code, content)",
+                name="🔄 Loops (Iteração Contínua)",
+                value=loop_section,
                 inline=False
             )
+        else:
+            embed.add_field(
+                name="🔄 Loops (Iteração Contínua)",
+                value=loop_section + "\n⚠️ *Sistema de loops não disponível no momento*",
+                inline=False
+            )
+        
+        embed.add_field(
+            name="ℹ️ Informações",
+            value=(
+                "`!ralph status` - Status geral do swarm\n"
+                "`!ralph agents` - Lista agentes disponíveis\n"
+                "`!ralph rag status` - Estatísticas de memória RAG"
+            ),
+            inline=False
+        )
+        
+        embed.add_field(
+            name="💡 Dicas",
+            value=(
+                "• Use `--max 30` para tarefas complexas (padrão: 20)\n"
+                "• Agentes: `dev`, `ralf`, `max`, `maya`, `scout`, `watcher`, `tracker`\n"
+                "• Responda 🎩 para interagir com perguntas do Ralph"
+            ),
+            inline=False
+        )
+        
+        await message.reply(embed=embed)
 
+    async def _cmd_retry(self, message: discord.Message):
+        """Força reprocessamento de mensagens pendentes"""
+        pending = pending_queue.get_pending(limit=50)
+        
+        if not pending:
+            await message.reply("✅ Nenhuma mensagem pendente na fila.")
+            return
+        
+        count = 0
+        for row in pending:
+            db_id, msg_id, ch_id, author_id, content, retry_count = row
+            try:
+                channel = self.get_channel(int(ch_id))
+                if channel:
+                    try:
+                        discord_msg = await channel.fetch_message(int(msg_id))
+                        await self._relay_to_swarm(discord_msg)
+                        pending_queue.mark_processed(msg_id)
+                        count += 1
+                    except discord.NotFound:
+                        pending_queue.mark_processed(msg_id)
+            except Exception as e:
+                logger.error(f"Erro no retry: {e}")
+        
+        await message.reply(f"🔄 {count} mensagens reprocessadas da fila.")
+
+    async def _cmd_queue(self, message: discord.Message):
+        """Mostra status da fila"""
+        stats = pending_queue.get_stats()
+        
+        embed = discord.Embed(
+            title="📥 Fila de Mensagens",
+            color=0xFFA500
+        )
+        embed.add_field(name="Pendentes", value=str(stats['pending']), inline=True)
+        embed.add_field(name="Processadas", value=str(stats['processed']), inline=True)
+        embed.add_field(name="Falhas", value=str(stats['failed']), inline=True)
+        
+        if stats['pending'] > 0:
+            embed.add_field(
+                name="💡 Dica",
+                value="Use `!ralph retry` para reprocessar",
+                inline=False
+            )
+        
         await message.reply(embed=embed)
 
     async def _cmd_status(self, message: discord.Message):
-        """Show swarm status"""
+        """Status do swarm"""
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
 
-            # Get counts
             cursor.execute("SELECT COUNT(*) FROM swarm_agents")
             agent_count = cursor.fetchone()[0]
 
@@ -521,9 +708,6 @@ class SwarmDiscordBridge(discord.Client):
             cursor.execute("SELECT COUNT(*) FROM swarm_tasks WHERE status = 'pending'")
             pending_count = cursor.fetchone()[0]
 
-            cursor.execute("SELECT COUNT(*) FROM swarm_channels")
-            channel_count = cursor.fetchone()[0]
-
             conn.close()
 
             embed = discord.Embed(
@@ -531,18 +715,24 @@ class SwarmDiscordBridge(discord.Client):
                 color=0x00FF00
             )
             embed.add_field(name="Agentes", value=str(agent_count), inline=True)
-            embed.add_field(name="Canais", value=str(channel_count), inline=True)
-            embed.add_field(name="Tarefas Totais", value=str(task_count), inline=True)
-            embed.add_field(name="Tarefas Pendentes", value=str(pending_count), inline=True)
-            embed.set_footer(text="Dashboard: http://100.94.223.52:3003/swarm")
+            embed.add_field(name="Tasks", value=str(task_count), inline=True)
+            embed.add_field(name="Pendentes", value=str(pending_count), inline=True)
+            
+            # Status da fila
+            queue_stats = pending_queue.get_stats()
+            embed.add_field(
+                name="📥 Fila",
+                value=f"{queue_stats['pending']} pendentes",
+                inline=True
+            )
 
             await message.reply(embed=embed)
 
         except Exception as e:
-            await message.reply(f"❌ Erro ao consultar status: {e}")
+            await message.reply(f"❌ Erro: {e}")
 
     async def _cmd_agents(self, message: discord.Message):
-        """List available agents"""
+        """Lista agentes"""
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
@@ -550,193 +740,40 @@ class SwarmDiscordBridge(discord.Client):
             agents = cursor.fetchall()
             conn.close()
 
-            embed = discord.Embed(
-                title="🤖 Agentes Disponíveis",
-                color=0xFFA500
-            )
-
-            emojis = {"ralph": "🎩", "scout": "🔍", "max": "🛠️", "maya": "📝", "tracker": "📊", "watcher": "👁️"}
+            embed = discord.Embed(title="🤖 Agentes", color=0xFFA500)
+            emojis = {"ralph": "🎩", "scout": "🔍", "max": "🛠️", 
+                     "maya": "📝", "tracker": "📊", "watcher": "👁️"}
 
             for name, role, tier in agents:
                 emoji = emojis.get(name.lower(), "🤖")
                 tier_emoji = "$" * (3 if tier == "expensive" else 2 if tier == "medium" else 1)
-                embed.add_field(
-                    name=f"{emoji} {name.title()}",
-                    value=f"{role}\n{tier_emoji}",
-                    inline=True
-                )
+                embed.add_field(name=f"{emoji} {name.title()}", 
+                              value=f"{role}\n{tier_emoji}", inline=True)
 
             await message.reply(embed=embed)
 
         except Exception as e:
             await message.reply(f"❌ Erro: {e}")
-
-    async def _cmd_channels(self, message: discord.Message):
-        """List swarm channels"""
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute("SELECT name, description FROM swarm_channels ORDER BY name")
-            channels = cursor.fetchall()
-            conn.close()
-
-            embed = discord.Embed(
-                title="📡 Canais do Swarm",
-                color=0x7289DA
-            )
-
-            for name, desc in channels[:20]:  # Limit to 20
-                embed.add_field(name=f"#{name}", value=desc or "Sem descrição", inline=False)
-
-            if len(channels) > 20:
-                embed.set_footer(text=f"...e mais {len(channels) - 20} canais")
-
-            await message.reply(embed=embed)
-
-        except Exception as e:
-            await message.reply(f"❌ Erro: {e}")
-
-    # 🆕 Comandos RAG
-    async def _cmd_rag_status(self, message: discord.Message):
-        """Mostra estatísticas do RAG"""
-        if not HAS_RAG:
-            await message.reply("❌ RAG não está disponível")
-            return
-
-        stats = rag_memory.get_stats()
-
-        embed = discord.Embed(
-            title="🧠 Swarm RAG - Estatísticas",
-            color=0x9B59B6
-        )
-        embed.add_field(name="✅ Exemplos Aprovados", value=str(stats['examples']), inline=True)
-        embed.add_field(name="❌ Erros Aprendidos", value=str(stats['mistakes']), inline=True)
-        embed.add_field(name="⭐ Qualidade Média", value=f"{stats['avg_quality']}/5", inline=True)
-
-        if stats['by_task_type']:
-            types_text = "\n".join([f"• {k}: {v}" for k, v in list(stats['by_task_type'].items())[:5]])
-            embed.add_field(name="📊 Por Tipo", value=types_text, inline=False)
-
-        await message.reply(embed=embed)
-
-    async def _cmd_rag_examples(self, message: discord.Message, task_type: str):
-        """Mostra exemplos recentes por tipo"""
-        if not HAS_RAG:
-            await message.reply("❌ RAG não está disponível")
-            return
-
-        examples = rag_memory.search_examples(task_type, "", "", limit=5)
-
-        if not examples:
-            await message.reply(f"📭 Nenhum exemplo de `{task_type}` ainda.")
-            return
-
-        embed = discord.Embed(
-            title=f"📚 Exemplos Recentes - {task_type}",
-            color=0x2ECC71
-        )
-
-        for i, ex in enumerate(examples, 1):
-            embed.add_field(
-                name=f"{i}. {ex['task'][:50]}...",
-                value=f"⭐ {ex['quality_score']}/5 | 👤 {ex['approved_by'][:20]}",
-                inline=False
-            )
-
-        await message.reply(embed=embed)
-
-    # 🆕 Método para enviar task para review (chamado pelo sistema)
-    async def send_task_for_review(self, channel_id: int, task_id: str, agent_name: str,
-                                    project: str, task_type: str, task_desc: str, output: str):
-        """
-        Envia output de uma task para review no Discord.
-        Chamado quando uma task é completada.
-        """
-        try:
-            channel = self.get_channel(channel_id)
-            if not channel:
-                print(f"❌ Canal {channel_id} não encontrado para review")
-                return
-
-            # Cria embed
-            embed = discord.Embed(
-                title=f"🤖 {agent_name} - Output para Review",
-                description=f"**Task:** {task_desc[:150]}{'...' if len(task_desc) > 150 else ''}",
-                color=discord.Color.blue(),
-                timestamp=datetime.now()
-            )
-
-            embed.add_field(name="📁 Projeto", value=project, inline=True)
-            embed.add_field(name="📋 Tipo", value=task_type, inline=True)
-            embed.add_field(name="🆔 Task ID", value=task_id, inline=True)
-
-            # Output truncado
-            output_display = output[:800] + "..." if len(output) > 800 else output
-            embed.add_field(
-                name="📤 Output",
-                value=f"```\n{output_display}\n```",
-                inline=False
-            )
-
-            # Cria view com botões
-            view = RAGReviewView(
-                task_id=task_id,
-                task_type=task_type,
-                project=project,
-                task_desc=task_desc,
-                output=output,
-                agent_name=agent_name
-            )
-
-            await channel.send(embed=embed, view=view)
-            print(f"📤 Task {task_id} enviada para review em #{channel.name}")
-
-        except Exception as e:
-            print(f"❌ Erro ao enviar para review: {e}")
-
-    async def _cmd_project(self, message: discord.Message):
-        """Show project brief for current channel"""
-        project = self.get_project_context(message)
-        brief = self.load_project_brief(project)
-
-        if brief:
-            embed = discord.Embed(
-                title=f"📚 Projeto: {project.title()}",
-                description=brief[:2000] + ("..." if len(brief) > 2000 else ""),
-                color=0x7289DA
-            )
-            embed.set_footer(text=f"Contexto carregado de projects/{project}/PROJECT.md")
-            await message.reply(embed=embed)
-        else:
-            await message.reply(
-                f"📭 Nenhum PROJECT.md encontrado para o projeto **{project}**.\n\n"
-                f"Crie o arquivo em `swarm/projects/{project}/PROJECT.md` para adicionar contexto."
-            )
 
     async def _cmd_task(self, message: discord.Message, args: list):
-        """Create a new task with project context"""
+        """Cria nova task"""
         if not args:
-            await message.reply("❌ Uso: `!ralph task <descrição da tarefa>`")
+            await message.reply("❌ Uso: `!ralph task <descrição>`")
             return
 
         task_description = " ".join(args)
         project = self.get_project_context(message)
 
         try:
-            # Use task manager directly
             from ralph_swarm_core import SwarmTaskManager
-
             tasks = SwarmTaskManager()
 
-            # Load project brief
             project_brief = self.load_project_brief(project)
-
-            # Build task with project context
             full_request = f"[{project.upper()}] {task_description}"
+            
             if project_brief:
-                full_request += f"\n\n[CONTEXT DO PROJETO]:\n{project_brief[:1500]}..."  # Limit to avoid token explosion
+                full_request += f"\n\n[CONTEXT]:\n{project_brief[:1500]}..."
 
-            # Create task with project context
             task = tasks.create_task(
                 original_request=full_request,
                 coordinator_agent_slug='ralph',
@@ -745,70 +782,78 @@ class SwarmDiscordBridge(discord.Client):
                 channel_id=message.channel.id
             )
 
-            # Hybrid: reply in same channel, or in output channel if exists
-            output_channel = await self.get_output_channel(message.guild)
-            target_channel = output_channel if output_channel else message.channel
-
             embed = discord.Embed(
                 title="✅ Tarefa Criada",
                 description=f"**Projeto:** {project}\n**Descrição:** {task_description}",
                 color=0x00FF00
             )
             embed.add_field(name="Task ID", value=f"`{task.task_code}`", inline=True)
-            embed.add_field(name="Solicitante", value=message.author.mention, inline=True)
+            embed.set_footer(text="🎩 Ralph vai analisar e fazer perguntas")
 
-            if project_brief:
-                embed.add_field(name="📚 Contexto", value="Brief do projeto carregado", inline=False)
-
-            embed.set_footer(text="🎩 Ralph vai analisar e fazer perguntas para refinar a task")
-
-            await target_channel.send(embed=embed)
-
-            # React to original message
+            await message.reply(embed=embed)
             await message.add_reaction("✅")
 
         except Exception as e:
-            await message.reply(f"❌ Erro ao criar tarefa: {e}")
+            await message.reply(f"❌ Erro: {e}")
+
+    async def _cmd_rag(self, message: discord.Message, parts: list):
+        """Comandos RAG"""
+        if not HAS_RAG:
+            await message.reply("❌ RAG não disponível")
+            return
+
+        subcommand = parts[0] if parts else "status"
+        
+        if subcommand == "status":
+            stats = rag_memory.get_stats()
+            embed = discord.Embed(title="🧠 RAG - Estatísticas", color=0x9B59B6)
+            embed.add_field(name="✅ Exemplos", value=str(stats['examples']), inline=True)
+            embed.add_field(name="❌ Erros", value=str(stats['mistakes']), inline=True)
+            embed.add_field(name="⭐ Qualidade", value=f"{stats['avg_quality']}/5", inline=True)
+            await message.reply(embed=embed)
+        else:
+            await message.reply("❓ Use: `!ralph rag status`")
+
+    async def _cmd_loop(self, message: discord.Message, parts: list):
+        """Comandos de loop (iteração contínua)"""
+        if not LOOP_COMMANDS_AVAILABLE:
+            await message.reply("❌ Sistema de loops não disponível. Verifique os logs.")
+            return
+        
+        await handle_loop_command(self, message, parts)
 
     async def _relay_to_swarm(self, message: discord.Message, from_reply: bool = False):
-        """Relay Discord message to swarm database with project context"""
+        """Relay para swarm"""
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
 
-            # Get project context
             project = self.get_project_context(message)
-
-            # v4.0: Use discord_channel_id for consistency with notifications
-            # This ensures responses are saved to the same channel where questions were sent
             channel_name = f"discord-{message.channel.id}"
+            
             cursor.execute("SELECT id FROM swarm_channels WHERE name = ?", (channel_name,))
             result = cursor.fetchone()
 
             if not result:
-                # Create channel
                 cursor.execute("""
                     INSERT INTO swarm_channels (channel_code, name, description, created_by)
                     VALUES (?, ?, ?, ?)
-                """, (channel_name, channel_name, f"Discord bridge for channel: {message.channel.name} (project: {project})", "system"))
+                """, (channel_name, channel_name, f"Discord: {message.channel.name}", "system"))
                 conn.commit()
                 channel_id = cursor.lastrowid
             else:
                 channel_id = result[0]
 
-            # Store message with project context
+            message_code = f"MSG-{uuid.uuid4().hex[:8].upper()}"
+            
             cursor.execute("""
-                INSERT INTO swarm_messages (channel_id, author_type, author_id, content, mentions)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO swarm_messages (message_code, channel_id, author_type, author_id, content, mentions)
+                VALUES (?, ?, ?, ?, ?, ?)
             """, (
-                channel_id,
-                "user",
-                str(message.author),
-                message.content,
+                message_code, channel_id, "user", str(message.author), message.content,
                 json.dumps({
                     "discord_message_id": message.id,
                     "discord_channel_id": message.channel.id,
-                    "discord_author_id": message.author.id,
                     "project": project,
                     "from_reply": from_reply
                 })
@@ -817,174 +862,74 @@ class SwarmDiscordBridge(discord.Client):
             conn.commit()
             conn.close()
 
-            # React to show received
             await message.add_reaction("🐝")
 
         except Exception as e:
-            print(f"Error relaying to swarm: {e}")
+            logger.error(f"Erro no relay: {e}")
 
     async def _check_and_relay_any_channel(self, message: discord.Message):
-        """Check if message should be relayed from any channel (v4.0 - for task responses)"""
+        """Verifica se deve relay de qualquer canal"""
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
-
-            # Check if this channel has pending questions from Ralph
             channel_name = f"discord-{message.channel.id}"
-            cursor.execute("""
-                SELECT id FROM swarm_channels
-                WHERE name = ?
-            """, (channel_name,))
-
+            
+            cursor.execute("SELECT id FROM swarm_channels WHERE name = ?", (channel_name,))
             result = cursor.fetchone()
             conn.close()
 
             if result:
-                # Channel exists in our system, relay the message
                 await self._relay_to_swarm(message)
 
         except Exception as e:
-            print(f"Error checking channel: {e}")
+            logger.error(f"Erro no check: {e}")
 
-    async def _cmd_project_update(self, message: discord.Message, args: list):
-        """Update project brief field"""
-        if len(args) < 2:
-            await message.reply(
-                "❌ Uso: `!ralph project update <campo> <valor>`\n\n"
-                "Campos disponíveis:\n"
-                "• `visao` - Visão geral do projeto\n"
-                "• `objetivo` - Objetivo principal\n"
-                "• `stack` - Stack tecnológico\n"
-                "• `status` - Status atual\n"
-                "• `prioridade` - Prioridade do projeto\n"
-                "• `tom` - Tom de voz do projeto\n"
-                "• `dos` - O que fazer (DOs)\n"
-                "• `donts` - O que NÃO fazer (DON'Ts)\n\n"
-                "Exemplo: `!ralph project update stack Python + Node.js`"
-            )
-            return
-
-        field = args[0].lower()
-        value = " ".join(args[1:])
-        project = self.get_project_context(message)
-
-        # Map field names to markdown sections
-        field_map = {
-            "visao": "Visão Geral",
-            "objetivo": "Objetivo principal",
-            "stack": "Stack Tecnológico",
-            "status": "Status",
-            "prioridade": "Prioridade",
-            "tom": "Tom de Voz",
-            "dos": "DOs",
-            "donts": "DON'Ts"
-        }
-
-        if field not in field_map:
-            await message.reply(
-                f"❌ Campo `{field}` não reconhecido.\n"
-                f"Campos disponíveis: visao, objetivo, stack, status, prioridade, tom, dos, donts"
-            )
-            return
-
+    async def send_task_for_review(self, channel_id: int, task_id: str, agent_name: str,
+                                    project: str, task_type: str, task_desc: str, output: str):
+        """Envia task para review"""
         try:
-            # Load existing file
-            project_dir = os.path.join(os.path.dirname(__file__), 'projects', project)
-            project_file = os.path.join(project_dir, 'PROJECT.md')
+            channel = self.get_channel(channel_id)
+            if not channel:
+                return
 
-            if not os.path.exists(project_file):
-                # Create new file
-                os.makedirs(project_dir, exist_ok=True)
-                content = f"# 🌀 Projeto {project.title()}\n\n## {field_map[field]}\n{value}\n"
-            else:
-                # Read existing and update
-                with open(project_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-
-                # Check if section exists
-                section_header = f"## {field_map[field]}"
-                if section_header in content:
-                    # Replace existing section content
-                    import re
-                    pattern = f"({re.escape(section_header)}\\n).*?(?=\\n## |\\Z)"
-                    content = re.sub(pattern, f"\\1{value}\\n", content, flags=re.DOTALL)
-                else:
-                    # Add new section
-                    content += f"\n## {field_map[field]}\n{value}\n"
-
-            # Write updated content
-            with open(project_file, 'w', encoding='utf-8') as f:
-                f.write(content)
-
-            await message.reply(f"✅ Projeto **{project}** atualizado!\n📋 Campo `{field}` definido como:\n```{value}```")
-
-        except Exception as e:
-            await message.reply(f"❌ Erro ao atualizar projeto: {e}")
-
-    async def _handle_approval(self, message: discord.Message) -> bool:
-        """Handle task approval messages (user says 'aprovado')"""
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-
-            # Find tasks awaiting approval in this channel
-            cursor.execute("""
-                SELECT task_code, original_request
-                FROM swarm_tasks
-                WHERE status = 'awaiting_approval'
-                AND metadata LIKE ?
-                ORDER BY created_at DESC
-                LIMIT 1
-            """, (f'%"discord_channel_id": {message.channel.id}%',))
-
-            result = cursor.fetchone()
-            conn.close()
-
-            if not result:
-                return False  # No task awaiting approval
-
-            task_code, original_request = result
-
-            # Approve the task
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE swarm_tasks
-                SET status = 'approved', awaiting_approval = 0
-                WHERE task_code = ?
-            """, (task_code,))
-            conn.commit()
-            conn.close()
-
-            # Confirm to user
             embed = discord.Embed(
-                title="✅ Task Aprovada!",
-                description=f"**{task_code}**\n\n{original_request[:100]}...",
-                color=0x00FF00
+                title=f"🤖 {agent_name} - Output",
+                description=f"**Task:** {task_desc[:150]}{'...' if len(task_desc) > 150 else ''}",
+                color=discord.Color.blue(),
+                timestamp=datetime.now()
             )
-            embed.set_footer(text="Ralph vai iniciar a execução em breve...")
-            await message.reply(embed=embed)
+            embed.add_field(name="📁 Projeto", value=project, inline=True)
+            embed.add_field(name="📋 Tipo", value=task_type, inline=True)
 
-            logger.info(f"✅ Task {task_code} aprovada por {message.author}")
-            return True
+            output_display = output[:800] + "..." if len(output) > 800 else output
+            embed.add_field(name="📤 Output", value=f"```\n{output_display}\n```", inline=False)
+
+            view = RAGReviewView(
+                task_id=task_id, task_type=task_type, project=project,
+                task_desc=task_desc, output=output, agent_name=agent_name
+            )
+
+            await channel.send(embed=embed, view=view)
 
         except Exception as e:
-            logger.error(f"Error handling approval: {e}")
-            return False
+            logger.error(f"Erro ao enviar review: {e}")
 
-    async def send_to_discord(self, channel_id: int, content: str, embed: Optional[discord.Embed] = None):
-        """Send message from swarm to Discord"""
-        channel = self.get_channel(channel_id)
-        if channel:
-            if embed:
-                await channel.send(content, embed=embed)
-            else:
-                await channel.send(content)
 
-def run_bridge():
-    """Run the Discord bridge"""
-    bridge = SwarmDiscordBridge()
-    bridge.run(DISCORD_TOKEN)
+def main():
+    """Main entry point"""
+    client = SwarmDiscordBridge()
+    
+    # Graceful shutdown
+    def signal_handler(sig, frame):
+        logger.info("🛑 Sinal de shutdown recebido")
+        asyncio.create_task(client.close())
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    # Run
+    client.run(DISCORD_TOKEN)
 
-if __name__ == "__main__":
-    run_bridge()
+
+if __name__ == '__main__':
+    main()
