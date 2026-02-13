@@ -1,0 +1,2012 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-02-14T02:21:08.185890",
+    "system": "Ralph Swarm",
+    "agents": [
+      "Ralph",
+      "Scout",
+      "Max",
+      "Maya",
+      "Tracker",
+      "Watcher"
+    ],
+    "total_skills": 52
+  },
+  "skills_by_agent": {
+    "Ralph": {
+      "role": "Coordenador",
+      "tier": "Expensive (Kimi K2 / Claude Opus)",
+      "skills": [
+        {
+          "id": "RAL-001",
+          "name": "Análise de Tarefas",
+          "category": "analítica",
+          "subcategory": "avaliação",
+          "description": "Avaliar complexidade de tarefas usando Chain-of-Thought estruturado",
+          "techniques": [
+            "Chain-of-Thought",
+            "Coleta de Contexto",
+            "Avaliação de Complexidade"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "planning",
+            "analysis",
+            "decision-making",
+            "complexity-assessment"
+          ],
+          "prerequisites": [],
+          "complementary": [
+            "RAL-002",
+            "RAL-003"
+          ]
+        },
+        {
+          "id": "RAL-002",
+          "name": "Decisão Swarm vs Single",
+          "category": "estratégica",
+          "subcategory": "orquestração",
+          "description": "Decidir quando usar múltiplos agents vs agent único baseado em critérios objetivos",
+          "techniques": [
+            "Critérios Objetivos",
+            "Avaliação de Domínios",
+            "Análise de Trade-offs"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "swarm-intelligence",
+            "orchestration",
+            "decision-framework",
+            "resource-optimization"
+          ],
+          "prerequisites": [
+            "RAL-001"
+          ],
+          "complementary": [
+            "RAL-003",
+            "RAL-004"
+          ]
+        },
+        {
+          "id": "RAL-003",
+          "name": "Decomposição de Tarefas",
+          "category": "analítica",
+          "subcategory": "decomposição",
+          "description": "Quebrar tarefas complexas em subtarefas independentes com entregáveis claros",
+          "techniques": [
+            "Modularização",
+            "Definição de Dependências",
+            "Ordenação de Execução"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "task-decomposition",
+            "modular-design",
+            "dependency-management",
+            "workflow"
+          ],
+          "prerequisites": [
+            "RAL-001",
+            "RAL-002"
+          ],
+          "complementary": [
+            "RAL-004"
+          ]
+        },
+        {
+          "id": "RAL-004",
+          "name": "Coordenação de Agents",
+          "category": "estratégica",
+          "subcategory": "gestão",
+          "description": "Spawn, gerenciar e coordenar múltiplos agents com responsabilidades claras",
+          "techniques": [
+            "Spawn de Agents",
+            "Definição de SLA",
+            "Gestão de Dependências"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "agent-management",
+            "coordination",
+            "sla-management",
+            "resource-allocation"
+          ],
+          "prerequisites": [
+            "RAL-002",
+            "RAL-003"
+          ],
+          "complementary": [
+            "RAL-005"
+          ]
+        },
+        {
+          "id": "RAL-005",
+          "name": "Handoff Estruturado",
+          "category": "técnica",
+          "subcategory": "protocolo",
+          "description": "Transferir contexto e entregáveis entre agents de forma estruturada",
+          "techniques": [
+            "Documentação de Entrega",
+            "Mapeamento de Dependências",
+            "Questões Abertas"
+          ],
+          "complexity": "média",
+          "tags": [
+            "handoff",
+            "context-transfer",
+            "documentation",
+            "interface-contract"
+          ],
+          "prerequisites": [
+            "RAL-004"
+          ],
+          "complementary": [
+            "RAL-006"
+          ]
+        },
+        {
+          "id": "RAL-006",
+          "name": "Contratos de Interface",
+          "category": "técnica",
+          "subcategory": "especificação",
+          "description": "Definir entregáveis mínimos e SLAs para cada tipo de agent",
+          "techniques": [
+            "Especificação de Entregáveis",
+            "Definição de SLA",
+            "Validação de Contratos"
+          ],
+          "complexity": "média",
+          "tags": [
+            "interface-contract",
+            "sla",
+            "deliverables",
+            "quality-gates"
+          ],
+          "prerequisites": [],
+          "complementary": [
+            "RAL-005"
+          ]
+        },
+        {
+          "id": "RAL-007",
+          "name": "Síntese em 4 Camadas",
+          "category": "analítica",
+          "subcategory": "síntese",
+          "description": "Consolidar outputs de múltiplos agents em narrativa coerente estratégica",
+          "techniques": [
+            "Consolidação Técnica",
+            "Análise de Convergência",
+            "Síntese Estratégica",
+            "Narrativa Final"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "synthesis",
+            "convergence-analysis",
+            "strategic-synthesis",
+            "storytelling"
+          ],
+          "prerequisites": [
+            "RAL-004",
+            "RAL-005"
+          ],
+          "complementary": [
+            "RAL-008"
+          ]
+        },
+        {
+          "id": "RAL-008",
+          "name": "Priorização Impacto × Esforço",
+          "category": "estratégica",
+          "subcategory": "priorização",
+          "description": "Priorizar recomendações baseado em matriz de impacto vs esforço",
+          "techniques": [
+            "Matriz Impacto-Esforço",
+            "Análise de Risco",
+            "Definição de Próximos Passos"
+          ],
+          "complexity": "média",
+          "tags": [
+            "prioritization",
+            "impact-effort-matrix",
+            "risk-analysis",
+            "action-planning"
+          ],
+          "prerequisites": [
+            "RAL-007"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "RAL-009",
+          "name": "Resolução de Conflitos",
+          "category": "estratégica",
+          "subcategory": "negociação",
+          "description": "Resolver contradições entre outputs de diferentes agents",
+          "techniques": [
+            "Priorização de Dados Quantitativos",
+            "Validação de Fontes",
+            "Documentação de Decisões"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "conflict-resolution",
+            "data-prioritization",
+            "decision-documentation",
+            "fallback"
+          ],
+          "prerequisites": [
+            "RAL-007"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "RAL-010",
+          "name": "Protocolo de Fallback",
+          "category": "estratégica",
+          "subcategory": "contingência",
+          "description": "Gerenciar falhas de agents e continuar entrega mesmo com recursos limitados",
+          "techniques": [
+            "Re-spawn",
+            "Assunção Temporária",
+            "Ajuste de Plano",
+            "Documentação de Falhas"
+          ],
+          "complexity": "média",
+          "tags": [
+            "fallback",
+            "error-recovery",
+            "contingency-planning",
+            "resilience"
+          ],
+          "prerequisites": [
+            "RAL-004"
+          ],
+          "complementary": [
+            "RAL-009"
+          ]
+        }
+      ]
+    },
+    "Scout": {
+      "role": "Researcher",
+      "tier": "Cheap (Gemini Flash / Kimi Flash)",
+      "skills": [
+        {
+          "id": "SCO-001",
+          "name": "Framework ESTRATEGIC",
+          "category": "analítica",
+          "subcategory": "framework",
+          "description": "Metodologia completa de research: Estabelecer, Selecionar, Triar, Recolher, Analisar, Triar, Entregar",
+          "techniques": [
+            "E-Estabelecer",
+            "S-Selecionar",
+            "T-Triar",
+            "R-Recolher",
+            "A-Analisar",
+            "T-Triar",
+            "I-Insights",
+            "C-Entregar"
+          ],
+          "complexity": "média",
+          "tags": [
+            "research-framework",
+            "strategic",
+            "methodology",
+            "systematic-research"
+          ],
+          "prerequisites": [],
+          "complementary": [
+            "SCO-002",
+            "SCO-003"
+          ]
+        },
+        {
+          "id": "SCO-002",
+          "name": "Avaliação de Credibilidade de Fontes",
+          "category": "analítica",
+          "subcategory": "avaliação",
+          "description": "Classificar fontes em níveis de credibilidade (★★★ ★★ ★)",
+          "techniques": [
+            "Verificação de Fontes Primárias",
+            "Avaliação de Autoridade",
+            "Validação de Dados"
+          ],
+          "complexity": "média",
+          "tags": [
+            "source-evaluation",
+            "credibility-assessment",
+            "fact-checking",
+            "information-quality"
+          ],
+          "prerequisites": [
+            "SCO-001"
+          ],
+          "complementary": [
+            "SCO-003"
+          ]
+        },
+        {
+          "id": "SCO-003",
+          "name": "Níveis de Profundidade de Research",
+          "category": "estratégica",
+          "subcategory": "planejamento",
+          "description": "Escolher nível de research baseado em risco: Nível 1 (15-20min), Nível 2 (30-45min), Nível 3 (60+min)",
+          "techniques": [
+            "Avaliação de Risco",
+            "Timeboxing",
+            "Escopo Adaptativo"
+          ],
+          "complexity": "média",
+          "tags": [
+            "research-depth",
+            "risk-assessment",
+            "time-management",
+            "scope-definition"
+          ],
+          "prerequisites": [
+            "SCO-001"
+          ],
+          "complementary": [
+            "SCO-004"
+          ]
+        },
+        {
+          "id": "SCO-004",
+          "name": "Keyword Research",
+          "category": "técnica",
+          "subcategory": "pesquisa",
+          "description": "Gerar e selecionar keywords efetivas para research",
+          "techniques": [
+            "Keyword Principal",
+            "Keywords Relacionadas",
+            "Keywords de Exclusão"
+          ],
+          "complexity": "baixa",
+          "tags": [
+            "keyword-research",
+            "search-optimization",
+            "query-building",
+            "information-retrieval"
+          ],
+          "prerequisites": [
+            "SCO-001"
+          ],
+          "complementary": [
+            "SCO-005"
+          ]
+        },
+        {
+          "id": "SCO-005",
+          "name": "Triagem de Fontes",
+          "category": "analítica",
+          "subcategory": "filtragem",
+          "description": "Priorizar fontes primárias, especializadas, estabelecidas e complementares",
+          "techniques": [
+            "Hierarquia de Fontes",
+            "Validação Cruzada",
+            "Descarte de Ruído"
+          ],
+          "complexity": "média",
+          "tags": [
+            "source-triage",
+            "information-filtering",
+            "hierarchy",
+            "validation"
+          ],
+          "prerequisites": [
+            "SCO-002",
+            "SCO-004"
+          ],
+          "complementary": [
+            "SCO-006"
+          ]
+        },
+        {
+          "id": "SCO-006",
+          "name": "Análise de Padrões",
+          "category": "analítica",
+          "subcategory": "padrões",
+          "description": "Identificar padrões (3+ fontes) e controvérsias (2+ fontes divergindo)",
+          "techniques": [
+            "Consenso Analysis",
+            "Divergence Detection",
+            "Pattern Recognition"
+          ],
+          "complexity": "média",
+          "tags": [
+            "pattern-analysis",
+            "consensus-detection",
+            "controversy-identification",
+            "data-synthesis"
+          ],
+          "prerequisites": [
+            "SCO-005"
+          ],
+          "complementary": [
+            "SCO-007"
+          ]
+        },
+        {
+          "id": "SCO-007",
+          "name": "Geração de Insights Acionáveis",
+          "category": "analítica",
+          "subcategory": "síntese",
+          "description": "Transformar dados brutos em insights acionáveis com recomendações",
+          "techniques": [
+            "Síntese de Dados",
+            "Formulação de Recomendações",
+            "Identificação de Lacunas"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "insight-generation",
+            "actionable-recommendations",
+            "gap-analysis",
+            "knowledge-synthesis"
+          ],
+          "prerequisites": [
+            "SCO-006"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "SCO-008",
+          "name": "Protocolo de Fallback em Research",
+          "category": "estratégica",
+          "subcategory": "contingência",
+          "description": "Expandir keywords, tentar fontes alternativas, documentar tentativas",
+          "techniques": [
+            "Keyword Expansion",
+            "Source Diversification",
+            "Documentation"
+          ],
+          "complexity": "média",
+          "tags": [
+            "fallback",
+            "research-adaptation",
+            "alternative-sources",
+            "documentation"
+          ],
+          "prerequisites": [
+            "SCO-001"
+          ],
+          "complementary": []
+        }
+      ]
+    },
+    "Max": {
+      "role": "Builder",
+      "tier": "Medium (Claude Sonnet / Kimi K2)",
+      "skills": [
+        {
+          "id": "MAX-001",
+          "name": "Processo de Desenvolvimento em 5 Fases",
+          "category": "técnica",
+          "subcategory": "desenvolvimento",
+          "description": "Entendimento → Design → Implementação → Teste → Documentação",
+          "techniques": [
+            "Requirements Analysis",
+            "System Design",
+            "Implementation",
+            "Testing",
+            "Documentation"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "software-development",
+            "sdlc",
+            "development-lifecycle",
+            "engineering-process"
+          ],
+          "prerequisites": [],
+          "complementary": [
+            "MAX-002",
+            "MAX-003"
+          ]
+        },
+        {
+          "id": "MAX-002",
+          "name": "Metodologia DEBUG",
+          "category": "técnica",
+          "subcategory": "debugging",
+          "description": "Detectar → Examinar → Buscar Padrões → Usar Ferramentas → Gerar Hipóteses",
+          "techniques": [
+            "Error Detection",
+            "Code Examination",
+            "Pattern Matching",
+            "Tool Usage",
+            "Hypothesis Generation"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "debugging",
+            "troubleshooting",
+            "problem-solving",
+            "root-cause-analysis"
+          ],
+          "prerequisites": [
+            "MAX-001"
+          ],
+          "complementary": [
+            "MAX-003"
+          ]
+        },
+        {
+          "id": "MAX-003",
+          "name": "Checklist de Validação de Código",
+          "category": "técnica",
+          "subcategory": "qualidade",
+          "description": "Validar funcionalidade, robustez, performance, segurança e usabilidade",
+          "techniques": [
+            "Functional Testing",
+            "Edge Case Handling",
+            "Performance Testing",
+            "Security Validation",
+            "Usability Check"
+          ],
+          "complexity": "média",
+          "tags": [
+            "code-validation",
+            "quality-assurance",
+            "testing",
+            "checklist",
+            "best-practices"
+          ],
+          "prerequisites": [
+            "MAX-001"
+          ],
+          "complementary": [
+            "MAX-004"
+          ]
+        },
+        {
+          "id": "MAX-004",
+          "name": "Checklist de Segurança",
+          "category": "técnica",
+          "subcategory": "segurança",
+          "description": "Validar inputs, proteção contra SQL injection, XSS, path traversal, secrets management",
+          "techniques": [
+            "Input Validation",
+            "SQL Injection Prevention",
+            "XSS Prevention",
+            "Path Traversal Protection",
+            "Secrets Management"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "security",
+            "secure-coding",
+            "vulnerability-prevention",
+            "input-validation",
+            "secrets-management"
+          ],
+          "prerequisites": [
+            "MAX-003"
+          ],
+          "complementary": [
+            "MAX-005"
+          ]
+        },
+        {
+          "id": "MAX-005",
+          "name": "Stack Técnico",
+          "category": "técnica",
+          "subcategory": "tecnologia",
+          "description": "HTML/CSS/JS, Python (Flask/FastAPI), SQLite/PostgreSQL",
+          "techniques": [
+            "Frontend Development",
+            "Backend Development",
+            "Database Design",
+            "API Development"
+          ],
+          "complexity": "média",
+          "tags": [
+            "html",
+            "css",
+            "javascript",
+            "python",
+            "flask",
+            "fastapi",
+            "sqlite",
+            "postgresql",
+            "full-stack"
+          ],
+          "prerequisites": [
+            "MAX-001"
+          ],
+          "complementary": [
+            "MAX-006"
+          ]
+        },
+        {
+          "id": "MAX-006",
+          "name": "Design de Sistemas",
+          "category": "técnica",
+          "subcategory": "arquitetura",
+          "description": "Estruturar arquivos, definir interfaces, escolher bibliotecas, planejar tratamento de erros",
+          "techniques": [
+            "File Structure Design",
+            "Interface Definition",
+            "Library Selection",
+            "Error Handling Design"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "system-design",
+            "architecture",
+            "interface-design",
+            "error-handling",
+            "modular-design"
+          ],
+          "prerequisites": [
+            "MAX-001"
+          ],
+          "complementary": [
+            "MAX-007"
+          ]
+        },
+        {
+          "id": "MAX-007",
+          "name": "Tratamento de Edge Cases",
+          "category": "técnica",
+          "subcategory": "robustez",
+          "description": "Lidar com input vazio/nulo, input malformado, casos de erro esperados",
+          "techniques": [
+            "Null Handling",
+            "Malformed Input Handling",
+            "Error Recovery",
+            "Defensive Programming"
+          ],
+          "complexity": "média",
+          "tags": [
+            "edge-cases",
+            "error-handling",
+            "defensive-programming",
+            "robustness",
+            "input-validation"
+          ],
+          "prerequisites": [
+            "MAX-003"
+          ],
+          "complementary": []
+        }
+      ]
+    },
+    "Maya": {
+      "role": "Copywriter",
+      "tier": "Cheap (Gemini Flash / Kimi Flash)",
+      "skills": [
+        {
+          "id": "MAY-001",
+          "name": "Processo de Discovery",
+          "category": "analítica",
+          "subcategory": "pesquisa",
+          "description": "Análise de Público, Produto e Contexto antes de escrever",
+          "techniques": [
+            "Audience Analysis",
+            "Product Analysis",
+            "Context Mapping",
+            "Briefing Creation"
+          ],
+          "complexity": "média",
+          "tags": [
+            "discovery",
+            "audience-research",
+            "product-analysis",
+            "briefing",
+            "copy-strategy"
+          ],
+          "prerequisites": [],
+          "complementary": [
+            "MAY-002",
+            "MAY-003"
+          ]
+        },
+        {
+          "id": "MAY-002",
+          "name": "Framework AIDA",
+          "category": "criativa",
+          "subcategory": "framework",
+          "description": "Attention → Interest → Desire → Action para landing pages, VSLs, emails longos",
+          "techniques": [
+            "Attention Capture",
+            "Interest Building",
+            "Desire Creation",
+            "Action Drive"
+          ],
+          "complexity": "média",
+          "tags": [
+            "aida",
+            "copy-framework",
+            "conversion-copywriting",
+            "sales-copy",
+            "persuasion"
+          ],
+          "prerequisites": [
+            "MAY-001"
+          ],
+          "complementary": [
+            "MAY-003"
+          ]
+        },
+        {
+          "id": "MAY-003",
+          "name": "Framework PAS",
+          "category": "criativa",
+          "subcategory": "framework",
+          "description": "Problem → Agitate → Solve para ads curtos, posts sociais, cold emails",
+          "techniques": [
+            "Problem Identification",
+            "Pain Amplification",
+            "Solution Presentation"
+          ],
+          "complexity": "média",
+          "tags": [
+            "pas",
+            "copy-framework",
+            "short-copy",
+            "ad-copy",
+            "problem-agitation"
+          ],
+          "prerequisites": [
+            "MAY-001"
+          ],
+          "complementary": [
+            "MAY-002"
+          ]
+        },
+        {
+          "id": "MAY-004",
+          "name": "Criação de Headlines",
+          "category": "criativa",
+          "subcategory": "copywriting",
+          "description": "Criar headlines específicas, relevantes, urgentes, únicas, úteis, ultra-específicas",
+          "techniques": [
+            "Specificity",
+            "Relevance",
+            "Urgency",
+            "Uniqueness",
+            "Usefulness",
+            "Ultra-specificity"
+          ],
+          "complexity": "média",
+          "tags": [
+            "headlines",
+            "copywriting",
+            "hook-writing",
+            "attention-grabbing",
+            "conversion"
+          ],
+          "prerequisites": [
+            "MAY-002",
+            "MAY-003"
+          ],
+          "complementary": [
+            "MAY-005"
+          ]
+        },
+        {
+          "id": "MAY-005",
+          "name": "Call-to-Action (CTA)",
+          "category": "criativa",
+          "subcategory": "copywriting",
+          "description": "Criar CTAs claros, específicos, com redução de risco e urgência",
+          "techniques": [
+            "Clarity",
+            "Specificity",
+            "Risk Reduction",
+            "Urgency Creation"
+          ],
+          "complexity": "média",
+          "tags": [
+            "cta",
+            "call-to-action",
+            "conversion-optimization",
+            "persuasion",
+            "action-driving"
+          ],
+          "prerequisites": [
+            "MAY-004"
+          ],
+          "complementary": [
+            "MAY-006"
+          ]
+        },
+        {
+          "id": "MAY-006",
+          "name": "Prova Social",
+          "category": "criativa",
+          "subcategory": "copywriting",
+          "description": "Incorporar elementos de prova social para aumentar credibilidade",
+          "techniques": [
+            "Testimonials",
+            "Case Studies",
+            "Statistics",
+            "Authority Signals"
+          ],
+          "complexity": "baixa",
+          "tags": [
+            "social-proof",
+            "credibility",
+            "trust-building",
+            "testimonials",
+            "authority"
+          ],
+          "prerequisites": [
+            "MAY-005"
+          ],
+          "complementary": [
+            "MAY-007"
+          ]
+        },
+        {
+          "id": "MAY-007",
+          "name": "Storytelling",
+          "category": "criativa",
+          "subcategory": "narrativa",
+          "description": "Usar narrativas para criar conexão emocional e identificação",
+          "techniques": [
+            "Character Development",
+            "Conflict Creation",
+            "Resolution",
+            "Emotional Connection"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "storytelling",
+            "narrative",
+            "emotional-connection",
+            "engagement",
+            "brand-story"
+          ],
+          "prerequisites": [
+            "MAY-002"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "MAY-008",
+          "name": "Copy para LinkedIn",
+          "category": "criativa",
+          "subcategory": "canal",
+          "description": "Criar copy profissional mas acessível com insights e valor",
+          "techniques": [
+            "Professional Tone",
+            "Value Delivery",
+            "Strategic Line Breaks",
+            "Engagement CTAs"
+          ],
+          "complexity": "média",
+          "tags": [
+            "linkedin",
+            "b2b-copy",
+            "professional-copy",
+            "social-media",
+            "thought-leadership"
+          ],
+          "prerequisites": [
+            "MAY-001"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "MAY-009",
+          "name": "Copy para Landing Page",
+          "category": "criativa",
+          "subcategory": "canal",
+          "description": "Estruturar copy completa com AIDA, provas sociais, CTAs acima da dobra",
+          "techniques": [
+            "AIDA Structure",
+            "Social Proof Placement",
+            "Above-the-fold CTA",
+            "Benefit Focus"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "landing-page",
+            "conversion-copy",
+            "web-copy",
+            "sales-page",
+            "long-form"
+          ],
+          "prerequisites": [
+            "MAY-002",
+            "MAY-006"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "MAY-010",
+          "name": "Copy para Email",
+          "category": "criativa",
+          "subcategory": "canal",
+          "description": "Criar emails com assunto cativante, corpo scannable, CTA único, P.S.",
+          "techniques": [
+            "Subject Line",
+            "Preview Text",
+            "Scannable Body",
+            "Single CTA",
+            "P.S."
+          ],
+          "complexity": "média",
+          "tags": [
+            "email-copy",
+            "email-marketing",
+            "subject-lines",
+            "newsletter",
+            "drip-campaign"
+          ],
+          "prerequisites": [
+            "MAY-001"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "MAY-011",
+          "name": "Copy para Instagram",
+          "category": "criativa",
+          "subcategory": "canal",
+          "description": "Criar copy conversacional com emojis estratégicos e hashtags relevantes",
+          "techniques": [
+            "Conversational Tone",
+            "Strategic Emojis",
+            "Relevant Hashtags",
+            "Bio Link CTA"
+          ],
+          "complexity": "baixa",
+          "tags": [
+            "instagram",
+            "social-media-copy",
+            "b2c-copy",
+            "visual-copy",
+            "engagement"
+          ],
+          "prerequisites": [
+            "MAY-001"
+          ],
+          "complementary": []
+        }
+      ]
+    },
+    "Tracker": {
+      "role": "Analista",
+      "tier": "Cheap (Gemini Flash / Kimi Flash)",
+      "skills": [
+        {
+          "id": "TRA-001",
+          "name": "Processo de Análise Estruturado",
+          "category": "analítica",
+          "subcategory": "framework",
+          "description": "Preparação → Exploração → Interpretação → Recomendações",
+          "techniques": [
+            "Data Preparation",
+            "Exploratory Analysis",
+            "Interpretation",
+            "Recommendations"
+          ],
+          "complexity": "média",
+          "tags": [
+            "analytics-framework",
+            "data-analysis",
+            "structured-analysis",
+            "business-intelligence"
+          ],
+          "prerequisites": [],
+          "complementary": [
+            "TRA-002",
+            "TRA-003"
+          ]
+        },
+        {
+          "id": "TRA-002",
+          "name": "Métricas de Marketing",
+          "category": "analítica",
+          "subcategory": "métricas",
+          "description": "CTR, Conversion Rate, CAC, LTV",
+          "techniques": [
+            "CTR Analysis",
+            "Conversion Tracking",
+            "CAC Calculation",
+            "LTV Analysis"
+          ],
+          "complexity": "média",
+          "tags": [
+            "marketing-metrics",
+            "ctr",
+            "conversion-rate",
+            "cac",
+            "ltv",
+            "performance-marketing"
+          ],
+          "prerequisites": [
+            "TRA-001"
+          ],
+          "complementary": [
+            "TRA-003"
+          ]
+        },
+        {
+          "id": "TRA-003",
+          "name": "Métricas de Produto",
+          "category": "analítica",
+          "subcategory": "métricas",
+          "description": "DAU/MAU, Retenção, Churn Rate, NPS",
+          "techniques": [
+            "Active Users Tracking",
+            "Retention Analysis",
+            "Churn Calculation",
+            "NPS Analysis"
+          ],
+          "complexity": "média",
+          "tags": [
+            "product-metrics",
+            "dau",
+            "mau",
+            "retention",
+            "churn",
+            "nps",
+            "product-analytics"
+          ],
+          "prerequisites": [
+            "TRA-001"
+          ],
+          "complementary": [
+            "TRA-004"
+          ]
+        },
+        {
+          "id": "TRA-004",
+          "name": "Métricas Técnicas",
+          "category": "analítica",
+          "subcategory": "métricas",
+          "description": "Uptime, Latência, Error Rate, Throughput",
+          "techniques": [
+            "Uptime Monitoring",
+            "Latency Analysis",
+            "Error Tracking",
+            "Throughput Measurement"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "technical-metrics",
+            "uptime",
+            "latency",
+            "error-rate",
+            "throughput",
+            "devops",
+            "observability"
+          ],
+          "prerequisites": [
+            "TRA-001"
+          ],
+          "complementary": [
+            "TRA-005"
+          ]
+        },
+        {
+          "id": "TRA-005",
+          "name": "Sistema de Alertas",
+          "category": "analítica",
+          "subcategory": "monitoramento",
+          "description": "Classificar alertas por severidade: Crítica (🔴), Alta (🟡), Média (🟢)",
+          "techniques": [
+            "Severity Classification",
+            "Threshold Setting",
+            "Alert Routing",
+            "Escalation"
+          ],
+          "complexity": "média",
+          "tags": [
+            "alerting",
+            "severity-classification",
+            "monitoring",
+            "thresholds",
+            "escalation"
+          ],
+          "prerequisites": [
+            "TRA-002",
+            "TRA-003",
+            "TRA-004"
+          ],
+          "complementary": [
+            "TRA-006"
+          ]
+        },
+        {
+          "id": "TRA-006",
+          "name": "Análise de Tendências",
+          "category": "analítica",
+          "subcategory": "análise",
+          "description": "Identificar tendências crescentes, decrescentes ou estáveis",
+          "techniques": [
+            "Trend Detection",
+            "Direction Analysis",
+            "Baseline Comparison",
+            "Period-over-Period"
+          ],
+          "complexity": "média",
+          "tags": [
+            "trend-analysis",
+            "time-series",
+            "pattern-recognition",
+            "forecasting"
+          ],
+          "prerequisites": [
+            "TRA-001"
+          ],
+          "complementary": [
+            "TRA-007"
+          ]
+        },
+        {
+          "id": "TRA-007",
+          "name": "Análise de Causa Raiz",
+          "category": "analítica",
+          "subcategory": "investigação",
+          "description": "Investigar causas subjacentes de anomalias e problemas",
+          "techniques": [
+            "Root Cause Analysis",
+            "5 Whys",
+            "Correlation Analysis",
+            "Hypothesis Testing"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "root-cause-analysis",
+            "rca",
+            "problem-investigation",
+            "diagnostics",
+            "troubleshooting"
+          ],
+          "prerequisites": [
+            "TRA-006"
+          ],
+          "complementary": [
+            "TRA-008"
+          ]
+        },
+        {
+          "id": "TRA-008",
+          "name": "Detecção de Anomalias",
+          "category": "analítica",
+          "subcategory": "análise",
+          "description": "Identificar desvios > 2σ e outliers significativos",
+          "techniques": [
+            "Statistical Analysis",
+            "Standard Deviation",
+            "Outlier Detection",
+            "Anomaly Scoring"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "anomaly-detection",
+            "outlier-analysis",
+            "statistics",
+            "deviation-analysis",
+            "alerting"
+          ],
+          "prerequisites": [
+            "TRA-006"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "TRA-009",
+          "name": "Priorização Impacto × Esforço",
+          "category": "estratégica",
+          "subcategory": "priorização",
+          "description": "Priorizar ações baseado em matriz de impacto vs esforço",
+          "techniques": [
+            "Impact Assessment",
+            "Effort Estimation",
+            "Matrix Prioritization",
+            "Quick Wins"
+          ],
+          "complexity": "média",
+          "tags": [
+            "prioritization",
+            "impact-effort",
+            "action-planning",
+            "quick-wins",
+            "recommendations"
+          ],
+          "prerequisites": [
+            "TRA-007"
+          ],
+          "complementary": []
+        }
+      ]
+    },
+    "Watcher": {
+      "role": "Observador",
+      "tier": "Cheap (Gemini Flash / Kimi Flash)",
+      "skills": [
+        {
+          "id": "WAT-001",
+          "name": "Social Listening",
+          "category": "analítica",
+          "subcategory": "monitoramento",
+          "description": "Monitorar menções, conversas e sentimento sobre marca, produto e concorrentes",
+          "techniques": [
+            "Mention Tracking",
+            "Sentiment Analysis",
+            "Engagement Detection",
+            "Opportunity Identification"
+          ],
+          "complexity": "média",
+          "tags": [
+            "social-listening",
+            "brand-monitoring",
+            "sentiment-analysis",
+            "social-media",
+            "reputation"
+          ],
+          "prerequisites": [],
+          "complementary": [
+            "WAT-002",
+            "WAT-003"
+          ]
+        },
+        {
+          "id": "WAT-002",
+          "name": "Competitor Tracking",
+          "category": "estratégica",
+          "subcategory": "inteligência",
+          "description": "Observar movimentos de concorrentes: produto, marketing, preço, posicionamento",
+          "techniques": [
+            "Product Tracking",
+            "Marketing Tracking",
+            "Price Monitoring",
+            "Positioning Analysis"
+          ],
+          "complexity": "média",
+          "tags": [
+            "competitive-intelligence",
+            "competitor-tracking",
+            "market-intelligence",
+            "benchmarking"
+          ],
+          "prerequisites": [
+            "WAT-001"
+          ],
+          "complementary": [
+            "WAT-003"
+          ]
+        },
+        {
+          "id": "WAT-003",
+          "name": "Trend Detection",
+          "category": "analítica",
+          "subcategory": "previsão",
+          "description": "Identificar hashtags, tópicos em alta e mudanças de comportamento",
+          "techniques": [
+            "Hashtag Tracking",
+            "Volume Analysis",
+            "Influencer Adoption",
+            "Media Coverage"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "trend-detection",
+            "trend-analysis",
+            "market-trends",
+            "early-detection",
+            "forecasting"
+          ],
+          "prerequisites": [
+            "WAT-001"
+          ],
+          "complementary": [
+            "WAT-004"
+          ]
+        },
+        {
+          "id": "WAT-004",
+          "name": "Framework Competitor Tracking",
+          "category": "estratégica",
+          "subcategory": "framework",
+          "description": "Estrutura de observação: Produto, Marketing, Preço, Posicionamento",
+          "techniques": [
+            "Product Analysis",
+            "Marketing Analysis",
+            "Pricing Analysis",
+            "Positioning Analysis"
+          ],
+          "complexity": "média",
+          "tags": [
+            "competitive-framework",
+            "4p-analysis",
+            "competitive-landscape",
+            "market-analysis"
+          ],
+          "prerequisites": [
+            "WAT-002"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "WAT-005",
+          "name": "Framework Trend Detection",
+          "category": "analítica",
+          "subcategory": "framework",
+          "description": "5 sinais de tendência: Volume crescente, Engajamento alto, Adoção por influenciadores, Cobertura de mídia, Relevância",
+          "techniques": [
+            "Volume Growth",
+            "Engagement Analysis",
+            "Influencer Tracking",
+            "Media Monitoring",
+            "Relevance Assessment"
+          ],
+          "complexity": "alta",
+          "tags": [
+            "trend-framework",
+            "signal-detection",
+            "early-warning",
+            "pattern-recognition"
+          ],
+          "prerequisites": [
+            "WAT-003"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "WAT-006",
+          "name": "Classificação de Severidade",
+          "category": "estratégica",
+          "subcategory": "avaliação",
+          "description": "Classificar alertas por severidade: 🔴 Crítico, 🟡 Alto, 🟢 Médio",
+          "techniques": [
+            "Severity Assessment",
+            "Impact Evaluation",
+            "Urgency Classification",
+            "Alert Prioritization"
+          ],
+          "complexity": "média",
+          "tags": [
+            "severity-classification",
+            "risk-assessment",
+            "alert-prioritization",
+            "triage"
+          ],
+          "prerequisites": [
+            "WAT-002",
+            "WAT-003"
+          ],
+          "complementary": []
+        },
+        {
+          "id": "WAT-007",
+          "name": "Avaliação de Relevância",
+          "category": "estratégica",
+          "subcategory": "filtragem",
+          "description": "Filtrar ruído e reportar apenas informações relevantes e atualizadas",
+          "techniques": [
+            "Noise Filtering",
+            "Relevance Scoring",
+            "Timeliness Check",
+            "Impact Assessment"
+          ],
+          "complexity": "média",
+          "tags": [
+            "relevance-filtering",
+            "noise-reduction",
+            "information-filtering",
+            "signal-to-noise"
+          ],
+          "prerequisites": [
+            "WAT-001"
+          ],
+          "complementary": [
+            "WAT-006"
+          ]
+        }
+      ]
+    }
+  },
+  "taxonomy": {
+    "Técnica": {
+      "desenvolvimento": [
+        "MAX-001",
+        "MAX-005",
+        "MAX-006"
+      ],
+      "debugging": [
+        "MAX-002"
+      ],
+      "qualidade": [
+        "MAX-003"
+      ],
+      "segurança": [
+        "MAX-004",
+        "MAX-007"
+      ],
+      "protocolo": [
+        "RAL-005"
+      ],
+      "especificação": [
+        "RAL-006"
+      ],
+      "pesquisa": [
+        "SCO-004"
+      ]
+    },
+    "Analítica": {
+      "avaliação": [
+        "RAL-001",
+        "SCO-002",
+        "WAT-006"
+      ],
+      "decomposição": [
+        "RAL-003"
+      ],
+      "síntese": [
+        "RAL-007",
+        "SCO-007"
+      ],
+      "framework": [
+        "SCO-001",
+        "TRA-001",
+        "WAT-004",
+        "WAT-005"
+      ],
+      "métricas": [
+        "TRA-002",
+        "TRA-003",
+        "TRA-004"
+      ],
+      "monitoramento": [
+        "TRA-005",
+        "WAT-001"
+      ],
+      "análise": [
+        "TRA-006",
+        "TRA-008",
+        "WAT-003"
+      ],
+      "investigação": [
+        "TRA-007"
+      ],
+      "padrões": [
+        "SCO-006"
+      ],
+      "filtragem": [
+        "SCO-005",
+        "WAT-007"
+      ],
+      "previsão": [
+        "WAT-003"
+      ],
+      "pesquisa": [
+        "MAY-001"
+      ]
+    },
+    "Criativa": {
+      "copywriting": [
+        "MAY-004",
+        "MAY-005",
+        "MAY-006"
+      ],
+      "framework": [
+        "MAY-002",
+        "MAY-003"
+      ],
+      "narrativa": [
+        "MAY-007"
+      ],
+      "canal": [
+        "MAY-008",
+        "MAY-009",
+        "MAY-010",
+        "MAY-011"
+      ]
+    },
+    "Estratégica": {
+      "orquestração": [
+        "RAL-002",
+        "RAL-004"
+      ],
+      "gestão": [
+        "RAL-004"
+      ],
+      "priorização": [
+        "RAL-008",
+        "TRA-009"
+      ],
+      "negociação": [
+        "RAL-009"
+      ],
+      "contingência": [
+        "RAL-010",
+        "SCO-008"
+      ],
+      "planejamento": [
+        "SCO-003"
+      ],
+      "inteligência": [
+        "WAT-002"
+      ],
+      "avaliação": [
+        "WAT-006",
+        "WAT-007"
+      ],
+      "filtragem": [
+        "WAT-007"
+      ]
+    }
+  },
+  "relationships": {
+    "prerequisites": {
+      "RAL-002": [
+        "RAL-001"
+      ],
+      "RAL-003": [
+        "RAL-001",
+        "RAL-002"
+      ],
+      "RAL-004": [
+        "RAL-002",
+        "RAL-003"
+      ],
+      "RAL-005": [
+        "RAL-004"
+      ],
+      "RAL-007": [
+        "RAL-004",
+        "RAL-005"
+      ],
+      "RAL-008": [
+        "RAL-007"
+      ],
+      "RAL-009": [
+        "RAL-007"
+      ],
+      "RAL-010": [
+        "RAL-004"
+      ],
+      "SCO-002": [
+        "SCO-001"
+      ],
+      "SCO-003": [
+        "SCO-001"
+      ],
+      "SCO-004": [
+        "SCO-001"
+      ],
+      "SCO-005": [
+        "SCO-002",
+        "SCO-004"
+      ],
+      "SCO-006": [
+        "SCO-005"
+      ],
+      "SCO-007": [
+        "SCO-006"
+      ],
+      "SCO-008": [
+        "SCO-001"
+      ],
+      "MAX-002": [
+        "MAX-001"
+      ],
+      "MAX-003": [
+        "MAX-001"
+      ],
+      "MAX-004": [
+        "MAX-003"
+      ],
+      "MAX-005": [
+        "MAX-001"
+      ],
+      "MAX-006": [
+        "MAX-001"
+      ],
+      "MAX-007": [
+        "MAX-003"
+      ],
+      "MAY-002": [
+        "MAY-001"
+      ],
+      "MAY-003": [
+        "MAY-001"
+      ],
+      "MAY-004": [
+        "MAY-002",
+        "MAY-003"
+      ],
+      "MAY-005": [
+        "MAY-004"
+      ],
+      "MAY-006": [
+        "MAY-005"
+      ],
+      "MAY-007": [
+        "MAY-002"
+      ],
+      "MAY-008": [
+        "MAY-001"
+      ],
+      "MAY-009": [
+        "MAY-002",
+        "MAY-006"
+      ],
+      "MAY-010": [
+        "MAY-001"
+      ],
+      "MAY-011": [
+        "MAY-001"
+      ],
+      "TRA-002": [
+        "TRA-001"
+      ],
+      "TRA-003": [
+        "TRA-001"
+      ],
+      "TRA-004": [
+        "TRA-001"
+      ],
+      "TRA-005": [
+        "TRA-002",
+        "TRA-003",
+        "TRA-004"
+      ],
+      "TRA-006": [
+        "TRA-001"
+      ],
+      "TRA-007": [
+        "TRA-006"
+      ],
+      "TRA-008": [
+        "TRA-006"
+      ],
+      "TRA-009": [
+        "TRA-007"
+      ],
+      "WAT-002": [
+        "WAT-001"
+      ],
+      "WAT-003": [
+        "WAT-001"
+      ],
+      "WAT-004": [
+        "WAT-002"
+      ],
+      "WAT-005": [
+        "WAT-003"
+      ],
+      "WAT-006": [
+        "WAT-002",
+        "WAT-003"
+      ],
+      "WAT-007": [
+        "WAT-001"
+      ]
+    },
+    "complementary": {
+      "RAL-001": [
+        "RAL-002",
+        "RAL-003"
+      ],
+      "RAL-002": [
+        "RAL-003",
+        "RAL-004"
+      ],
+      "RAL-003": [
+        "RAL-004"
+      ],
+      "RAL-004": [
+        "RAL-005"
+      ],
+      "RAL-005": [
+        "RAL-006"
+      ],
+      "RAL-006": [
+        "RAL-005"
+      ],
+      "RAL-007": [
+        "RAL-008"
+      ],
+      "RAL-009": [
+        "RAL-010"
+      ],
+      "RAL-010": [
+        "RAL-009"
+      ],
+      "SCO-001": [
+        "SCO-002",
+        "SCO-003"
+      ],
+      "SCO-002": [
+        "SCO-003"
+      ],
+      "SCO-003": [
+        "SCO-004"
+      ],
+      "SCO-004": [
+        "SCO-005"
+      ],
+      "SCO-005": [
+        "SCO-006"
+      ],
+      "SCO-006": [
+        "SCO-007"
+      ],
+      "MAX-001": [
+        "MAX-002",
+        "MAX-003"
+      ],
+      "MAX-002": [
+        "MAX-003"
+      ],
+      "MAX-003": [
+        "MAX-004"
+      ],
+      "MAX-004": [
+        "MAX-005"
+      ],
+      "MAX-005": [
+        "MAX-006"
+      ],
+      "MAX-006": [
+        "MAX-007"
+      ],
+      "MAY-001": [
+        "MAY-002",
+        "MAY-003"
+      ],
+      "MAY-002": [
+        "MAY-003"
+      ],
+      "MAY-003": [
+        "MAY-002"
+      ],
+      "MAY-004": [
+        "MAY-005"
+      ],
+      "MAY-005": [
+        "MAY-006"
+      ],
+      "MAY-006": [
+        "MAY-007"
+      ],
+      "TRA-001": [
+        "TRA-002",
+        "TRA-003"
+      ],
+      "TRA-002": [
+        "TRA-003"
+      ],
+      "TRA-003": [
+        "TRA-004"
+      ],
+      "TRA-004": [
+        "TRA-005"
+      ],
+      "TRA-005": [
+        "TRA-006"
+      ],
+      "TRA-006": [
+        "TRA-007"
+      ],
+      "TRA-007": [
+        "TRA-008"
+      ],
+      "WAT-001": [
+        "WAT-002",
+        "WAT-003"
+      ],
+      "WAT-002": [
+        "WAT-003"
+      ],
+      "WAT-003": [
+        "WAT-004"
+      ]
+    },
+    "cross_agent_dependencies": {
+      "RAL-004": [
+        "SCO-001",
+        "MAX-001",
+        "MAY-001",
+        "TRA-001",
+        "WAT-001"
+      ],
+      "RAL-005": [
+        "SCO-007",
+        "MAX-003",
+        "MAY-004",
+        "TRA-009",
+        "WAT-006"
+      ],
+      "RAL-007": [
+        "SCO-007",
+        "MAX-001",
+        "MAY-007",
+        "TRA-007",
+        "WAT-003"
+      ],
+      "SCO-007": [
+        "MAY-001",
+        "TRA-001"
+      ],
+      "MAY-001": [
+        "SCO-007"
+      ],
+      "TRA-001": [
+        "WAT-001"
+      ]
+    }
+  },
+  "tags_index": {
+    "coordination": [
+      "RAL-001",
+      "RAL-002",
+      "RAL-004",
+      "RAL-005"
+    ],
+    "decision-making": [
+      "RAL-001",
+      "RAL-002",
+      "RAL-009"
+    ],
+    "planning": [
+      "RAL-001",
+      "RAL-003",
+      "RAL-008",
+      "SCO-003"
+    ],
+    "research": [
+      "SCO-001",
+      "SCO-004",
+      "SCO-005",
+      "SCO-007"
+    ],
+    "analysis": [
+      "RAL-001",
+      "RAL-007",
+      "SCO-006",
+      "TRA-001",
+      "TRA-006",
+      "TRA-007",
+      "TRA-008"
+    ],
+    "synthesis": [
+      "RAL-007",
+      "SCO-007"
+    ],
+    "development": [
+      "MAX-001",
+      "MAX-005",
+      "MAX-006"
+    ],
+    "debugging": [
+      "MAX-002"
+    ],
+    "security": [
+      "MAX-004"
+    ],
+    "copywriting": [
+      "MAY-002",
+      "MAY-003",
+      "MAY-004",
+      "MAY-005",
+      "MAY-006"
+    ],
+    "analytics": [
+      "TRA-001",
+      "TRA-002",
+      "TRA-003",
+      "TRA-004"
+    ],
+    "monitoring": [
+      "WAT-001",
+      "TRA-005"
+    ],
+    "intelligence": [
+      "WAT-002",
+      "WAT-003",
+      "WAT-004"
+    ],
+    "prioritization": [
+      "RAL-008",
+      "TRA-009"
+    ],
+    "framework": [
+      "SCO-001",
+      "MAY-002",
+      "MAY-003",
+      "TRA-001",
+      "WAT-004",
+      "WAT-005"
+    ],
+    "communication": [
+      "RAL-005",
+      "RAL-007",
+      "MAY-007"
+    ],
+    "quality": [
+      "MAX-003",
+      "RAL-006"
+    ],
+    "risk-management": [
+      "RAL-010",
+      "SCO-003",
+      "WAT-006"
+    ]
+  },
+  "complexity_levels": {
+    "baixa": {
+      "skills": [
+        "SCO-004",
+        "MAY-006",
+        "MAY-011"
+      ],
+      "description": "Tarefas bem definidas com procedimentos claros",
+      "time_estimate": "15-30 minutos",
+      "automation_potential": "alta"
+    },
+    "média": {
+      "skills": [
+        "RAL-005",
+        "RAL-006",
+        "RAL-008",
+        "RAL-010",
+        "SCO-001",
+        "SCO-002",
+        "SCO-003",
+        "SCO-005",
+        "SCO-006",
+        "SCO-008",
+        "MAX-003",
+        "MAX-005",
+        "MAX-007",
+        "MAY-001",
+        "MAY-002",
+        "MAY-003",
+        "MAY-004",
+        "MAY-005",
+        "MAY-008",
+        "MAY-010",
+        "TRA-001",
+        "TRA-002",
+        "TRA-003",
+        "TRA-005",
+        "TRA-006",
+        "TRA-009",
+        "WAT-001",
+        "WAT-002",
+        "WAT-004",
+        "WAT-006",
+        "WAT-007"
+      ],
+      "description": "Tarefas que requerem julgamento e adaptação",
+      "time_estimate": "30-60 minutos",
+      "automation_potential": "média"
+    },
+    "alta": {
+      "skills": [
+        "RAL-001",
+        "RAL-002",
+        "RAL-003",
+        "RAL-004",
+        "RAL-007",
+        "RAL-009",
+        "SCO-007",
+        "MAX-001",
+        "MAX-002",
+        "MAX-004",
+        "MAX-006",
+        "MAY-007",
+        "MAY-009",
+        "TRA-004",
+        "TRA-007",
+        "TRA-008",
+        "WAT-003",
+        "WAT-005"
+      ],
+      "description": "Tarefas complexas com múltiplas variáveis e incertezas",
+      "time_estimate": "60+ minutos",
+      "automation_potential": "baixa"
+    }
+  }
+}

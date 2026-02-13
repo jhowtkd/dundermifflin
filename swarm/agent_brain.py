@@ -135,7 +135,7 @@ Seja direto, objetivo e sempre entregue valor.
 
         return False
 
-    def generate_prompt(self, task: str, context: str = "", output_format: str = "") -> str:
+    def generate_prompt(self, task: str, context: str = "", output_format: str = "", rag_context: str = "") -> str:
         """Gera prompt completo para o LLM"""
 
         # Memória relevante
@@ -151,6 +151,9 @@ Seja direto, objetivo e sempre entregue valor.
 
 ## Contexto da Conversa
 {context if context else "Nenhum contexto anterior."}
+
+## Contexto RAG (Exemplos Anteriores)
+{rag_context if rag_context else "Nenhum contexto adicional."}
 
 ## Tarefa Atual
 {task}
