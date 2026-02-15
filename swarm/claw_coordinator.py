@@ -242,17 +242,102 @@ class ClawCoordinator:
             return decision.result
             
         elif analysis.action == ActionType.SPAWN_SINGLE:
-            # Spawno um subagente
+            # Spawno UM agente real do swarm
             agent = analysis.agents_needed[0]
-            result = await self._spawn_agent(agent, decision.user_request)
+            result = await self._spawn_swarm_agent(agent, decision.user_request)
             decision.result = result
             return result
             
-        else:  # SPAWN_PARALLEL
-            # Spawno múltiplos em paralelo
-            results = await self._spawn_parallel(analysis.agents_needed, decision.user_request)
+        else:  # SPAWN_PARALLEL - Coordeno múltiplos agentes reais
+            results = await self._spawn_swarm_parallel(analysis.agents_needed, decision.user_request)
             decision.result = self._synthesize_results(results)
             return decision.result
+    
+    async def _spawn_swarm_agent(self, agent_slug: str, task: str) -> str:
+        """
+        Spawna um agente REAL do swarm via AgentBrain
+        """
+        try:
+            from agent_brain import AgentBrain
+            
+            agent_info = self.AGENT_ROLES.get(agent_slug, {})
+            agent_name = agent_info.get('name', agent_slug)
+            emoji = agent_info.get('emoji', '🤖')
+            
+            print(f"🚀 Spawning {agent_name}...")
+            
+            # Cria brain do agente
+            brain = AgentBrain(agent_slug, use_real_llm=True)
+            
+            # Executa task
+            result = brain.think(task)
+            
+            # Extrai resultado limpo (remove logs de debug)
+            clean_result = self._extract_clean_output(result)
+            
+            return f"{emoji} **{agent_name}** completou:\n{clean_result[:800]}"
+            
+        except Exception as e:
+            return f"❌ Erro ao spawnar {agent_slug}: {str(e)}"
+    
+    async def _spawn_swarm_parallel(self, agents: List[str], task: str) -> Dict[str, str]:
+        """
+        Spawna múltiplos agentes do swarm EM PARALELO
+        """
+        import concurrent.futures
+        
+        results = {}
+        
+        def run_agent(agent_slug: str) -> Tuple[str, str]:
+            try:
+                from agent_brain import AgentBrain
+                
+                brain = AgentBrain(agent_slug, use_real_llm=True)
+                result = brain.think(task)
+                clean_result = self._extract_clean_output(result)
+                
+                return agent_slug, clean_result
+            except Exception as e:
+                return agent_slug, f"❌ Erro: {str(e)}"
+        
+        # Executa em paralelo
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents)) as executor:
+            futures = {executor.submit(run_agent, agent): agent for agent in agents}
+            
+            for future in concurrent.futures.as_completed(futures):
+                agent, result = future.result()
+                results[agent] = result
+        
+        return results
+    
+    def _extract_clean_output(self, raw_output: str) -> str:
+        """
+        Extrai apenas o resultado útil do output do agente
+        Remove logs de debug (ThinkPart, StatusUpdate, etc)
+        """
+        import re
+        
+        # Procura por TextPart ou conteúdo após marcadores
+        patterns = [
+            r"TextPart\([^)]*text=['\"](.+?)['\"]",
+            r"<RALPH_COMPLETE>(.*?)(?:</RALPH_COMPLETE>|$)",
+            r"## Resposta Final\s*\n(.+)",
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, raw_output, re.DOTALL)
+            if match:
+                return match.group(1).strip()
+        
+        # Se não achou padrão, retorna últimas linhas (resultado geralmente no final)
+        lines = raw_output.strip().split('\n')
+        # Remove linhas de log óbvias
+        clean_lines = [
+            l for l in lines 
+            if not any(x in l for x in ['TurnBegin', 'StepBegin', 'ThinkPart', 'StatusUpdate', 'TurnEnd', 'TextPart'])
+        ]
+        
+        return '\n'.join(clean_lines[-20:])  # Últimas 20 linhas
     
     async def _try_skill_execution(self, task: str) -> Optional[str]:
         """Tenta executar via skill dispatcher"""
@@ -266,23 +351,6 @@ class ClawCoordinator:
             if result.get('success'):
                 return f"✅ Executado via skill **{skill_id}**:\n{result.get('result', 'Concluído')}"
         return None
-    
-    async def _spawn_agent(self, agent_slug: str, task: str) -> str:
-        """Spawna um subagente e retorna resultado"""
-        # Aqui integraria com o sistema de subagentes
-        # Por enquanto, simula
-        agent_info = self.AGENT_ROLES.get(agent_slug, {})
-        return f"✅ {agent_info.get('emoji', '🤖')} {agent_info.get('name', 'Agent')} completou: {task[:50]}..."
-    
-    async def _spawn_parallel(self, agents: List[str], task: str) -> Dict[str, str]:
-        """Spawna múltiplos agentes em paralelo"""
-        tasks = [self._spawn_agent(agent, task) for agent in agents]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        return {
-            agent: result if not isinstance(result, Exception) else f"❌ Erro: {result}"
-            for agent, result in zip(agents, results)
-        }
     
     def _synthesize_results(self, results: Dict[str, str]) -> str:
         """Sintetiza resultados de múltiplos agentes"""
