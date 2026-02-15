@@ -1,0 +1,41 @@
+# Configuração de Deploy do Dashboard OpenClaw
+# Ralph Swarm - Deploy System
+
+project:
+  name: dashboard
+  type: nextjs
+  description: Mission Control Dashboard para o sistema OpenClaw AI
+
+deploy:
+  platform: vercel
+  build_cmd: npm run build
+  output_dir: .next
+  env_file: .env.local
+  
+  # Verificação pós-deploy
+  health_check:
+    url: https://openclaw-dashboard.vercel.app/api/health
+    timeout: 30
+  
+  # Notificações
+  notify:
+    on:
+      - success
+      - failure
+    channels:
+      - telegram
+  
+  # Deploy automático desabilitado por enquanto
+  auto_deploy:
+    branch: main
+    on_push: false
+
+# Configurações específicas do projeto
+settings:
+  node_version: "20"
+  install_cmd: "npm install"
+  
+# Variáveis de ambiente necessárias (definir no .env.local ou no Vercel)
+env_required:
+  - NEXT_PUBLIC_CONVEX_URL
+  - CONVEX_DEPLOY_KEY
