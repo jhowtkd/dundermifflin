@@ -242,44 +242,86 @@ Iniciando execução..."""
     def execute_swarm(self, task_description: str, plan: ExecutionPlan, task_id: int = None) -> Dict:
         """
         Executa o swarm conforme o plano.
-        
-        Args:
-            task_description: Descrição da tarefa
-            plan: Plano de execução
-            task_id: ID da task no banco (opcional)
-            
-        Returns:
-            Dict com resultados e síntese
+        Com integração ao Task Monitor (timeout, heartbeat, recovery)
         """
+        import threading
+        import time
+        
         results = {}
+        task_monitor = None
+        task_state = None
         
-        # Atualizar status da task
-        if task_id:
-            self.tasks.update_status(task_id, TaskStatus.RUNNING)
-        
-        # Postar plano no agent-chat
-        plan_msg = self.create_plan_message(plan, task_description)
-        self.ralph_brain.post_to_channel('agent-chat', plan_msg)
-        
-        if plan.parallelizable:
-            # Executar em paralelo
-            results = self._execute_parallel(task_description, plan.agents_required)
-        else:
-            # Executar em sequência (relay race)
-            results = self._execute_sequential(task_description, plan.agents_required)
-        
-        # Síntese final
-        synthesis = self._synthesize_results(task_description, results)
-        
-        # Finalizar task
-        if task_id:
-            self.tasks.set_final_output(task_id, synthesis)
-        
-        return {
-            'plan': plan.to_dict(),
-            'results': results,
-            'synthesis': synthesis
-        }
+        try:
+            # Atualizar status da task
+            if task_id:
+                self.tasks.update_status(task_id, TaskStatus.RUNNING)
+            
+            # Registrar no Task Monitor
+            try:
+                from task_monitor import task_monitor, register_task, heartbeat, complete_task
+                task_code = f"TASK-{task_id}" if task_id else "UNKNOWN"
+                task_state = register_task(task_id or 0, task_code, "swarm")
+            except Exception as e:
+                print(f"⚠️ Task monitor not available: {e}")
+            
+            # Postar plano no agent-chat
+            plan_msg = self.create_plan_message(plan, task_description)
+            self.ralph_brain.post_to_channel('agent-chat', plan_msg)
+            
+            # Heartbeat thread
+            def heartbeat_loop():
+                while task_state and task_state.task_id:
+                    try:
+                        heartbeat(task_state.task_id)
+                        time.sleep(30)
+                    except:
+                        break
+            
+            if task_state:
+                hb_thread = threading.Thread(target=heartbeat_loop, daemon=True)
+                hb_thread.start()
+            
+            if plan.parallelizable:
+                results = self._execute_parallel(task_description, plan.agents_required)
+            else:
+                results = self._execute_sequential(task_description, plan.agents_required)
+            
+            # Síntese final
+            synthesis = self._synthesize_results(task_description, results)
+            
+            # Finalizar task
+            if task_id:
+                self.tasks.set_final_output(task_id, synthesis)
+            
+            # Completar no monitor
+            if task_state:
+                complete_task(task_state.task_id, success=True)
+            
+            return {
+                'plan': plan.to_dict(),
+                'results': results,
+                'synthesis': synthesis,
+                'status': 'completed'
+            }
+            
+        except Exception as e:
+            error_msg = f"Task execution failed: {str(e)}"
+            print(f"❌ {error_msg}")
+            
+            # Marcar como falha no monitor
+            if task_state:
+                complete_task(task_state.task_id, success=False, error=error_msg)
+            
+            # Marcar como falha no banco
+            if task_id:
+                self.tasks.update_status(task_id, TaskStatus.FAILED)
+            
+            return {
+                'plan': plan.to_dict(),
+                'results': results,
+                'error': error_msg,
+                'status': 'failed'
+            }
     
     def _execute_parallel(self, task: str, agents: List[str]) -> Dict[str, str]:
         """Executa agents em paralelo"""

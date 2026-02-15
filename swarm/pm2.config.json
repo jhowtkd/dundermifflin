@@ -1,0 +1,67 @@
+{
+  "apps": [
+    {
+      "name": "ralph-discord-bridge",
+      "script": "/home/clawd/.openclaw/workspace/projects/dunder-mifflin/swarm/discord_bridge_v51.py",
+      "interpreter": "python3",
+      "cwd": "/home/clawd/.openclaw/workspace/projects/dunder-mifflin/swarm",
+      "exec_mode": "fork",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "max_memory_restart": "500M",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "error_file": "/tmp/discord_bridge_error.log",
+      "out_file": "/tmp/discord_bridge_out.log",
+      "log_file": "/tmp/discord_bridge_combined.log",
+      "merge_logs": true,
+      "kill_timeout": 5000,
+      "listen_timeout": 10000,
+      "restart_delay": 3000,
+      "max_restarts": 10,
+      "min_uptime": "10s",
+      "exp_backoff_restart_delay": 100
+    },
+    {
+      "name": "ralph-task-monitor",
+      "script": "/home/clawd/.openclaw/workspace/projects/dunder-mifflin/swarm/task_monitor.py",
+      "interpreter": "python3",
+      "cwd": "/home/clawd/.openclaw/workspace/projects/dunder-mifflin/swarm",
+      "exec_mode": "fork",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "max_memory_restart": "200M",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "error_file": "/tmp/task_monitor_error.log",
+      "out_file": "/tmp/task_monitor_out.log",
+      "merge_logs": true,
+      "kill_timeout": 5000,
+      "restart_delay": 5000,
+      "max_restarts": 10,
+      "min_uptime": "10s"
+    },
+    {
+      "name": "ralph-task-executor",
+      "script": "/home/clawd/.openclaw/workspace/projects/dunder-mifflin/swarm_task_executor_v4.py",
+      "interpreter": "python3",
+      "cwd": "/home/clawd/.openclaw/workspace/projects/dunder-mifflin",
+      "exec_mode": "fork",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "max_memory_restart": "300M",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "error_file": "/tmp/task_executor_error.log",
+      "out_file": "/tmp/task_executor_out.log",
+      "merge_logs": true,
+      "kill_timeout": 5000,
+      "restart_delay": 5000,
+      "max_restarts": 10,
+      "min_uptime": "10s"
+    }
+  ]
+}

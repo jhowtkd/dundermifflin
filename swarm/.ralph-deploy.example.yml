@@ -1,0 +1,25 @@
+# Exemplo de configuração para deploy pelo Ralph Swarm
+# Salve como .ralph-deploy.yml na raiz do seu projeto
+
+project:
+  name: meu-app
+  type: nextjs  # nextjs, react, python, docker, static
+  
+deploy:
+  platform: vercel  # vercel, railway, docker, github_pages, netlify
+  build_cmd: npm run build
+  output_dir: .next
+  env_file: .env.production
+  
+  health_check:
+    url: https://meu-app.vercel.app/api/health
+    timeout: 30
+  
+  notify:
+    on:
+      - success
+      - failure
+  
+  auto_deploy:
+    branch: main
+    on_push: false

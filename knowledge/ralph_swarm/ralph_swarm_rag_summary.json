@@ -1,0 +1,198 @@
+{
+  "system": "Ralph Swarm",
+  "version": "1.0",
+  "summary": {
+    "total_skills": 52,
+    "total_agents": 6,
+    "categories": {
+      "tecnica": {
+        "count": 15,
+        "agents": [
+          "Max",
+          "Ralph"
+        ]
+      },
+      "analitica": {
+        "count": 24,
+        "agents": [
+          "Ralph",
+          "Scout",
+          "Tracker",
+          "Watcher"
+        ]
+      },
+      "criativa": {
+        "count": 11,
+        "agents": [
+          "Maya"
+        ]
+      },
+      "estratégica": {
+        "count": 15,
+        "agents": [
+          "Ralph",
+          "Scout",
+          "Watcher"
+        ]
+      }
+    },
+    "complexity": {
+      "baixa": 3,
+      "média": 32,
+      "alta": 17
+    }
+  },
+  "agents": {
+    "Ralph": {
+      "role": "Coordenador",
+      "tier": "Expensive",
+      "skills_count": 10,
+      "primary_categories": [
+        "estratégica",
+        "analítica"
+      ],
+      "key_skills": [
+        "Análise de Tarefas",
+        "Decisão Swarm vs Single",
+        "Síntese em 4 Camadas",
+        "Coordenação de Agents"
+      ],
+      "model": "Kimi K2 / Claude Opus"
+    },
+    "Scout": {
+      "role": "Researcher",
+      "tier": "Cheap",
+      "skills_count": 8,
+      "primary_categories": [
+        "analítica"
+      ],
+      "key_skills": [
+        "Framework ESTRATEGIC",
+        "Avaliação de Credibilidade",
+        "Níveis de Profundidade"
+      ],
+      "model": "Gemini Flash / Kimi Flash"
+    },
+    "Max": {
+      "role": "Builder",
+      "tier": "Medium",
+      "skills_count": 7,
+      "primary_categories": [
+        "técnica"
+      ],
+      "key_skills": [
+        "Processo de Desenvolvimento",
+        "Metodologia DEBUG",
+        "Checklist de Segurança"
+      ],
+      "model": "Claude Sonnet / Kimi K2"
+    },
+    "Maya": {
+      "role": "Copywriter",
+      "tier": "Cheap",
+      "skills_count": 11,
+      "primary_categories": [
+        "criativa"
+      ],
+      "key_skills": [
+        "Framework AIDA",
+        "Framework PAS",
+        "Criação de Headlines",
+        "Storytelling"
+      ],
+      "model": "Gemini Flash / Kimi Flash"
+    },
+    "Tracker": {
+      "role": "Analista",
+      "tier": "Cheap",
+      "skills_count": 9,
+      "primary_categories": [
+        "analítica"
+      ],
+      "key_skills": [
+        "Processo de Análise",
+        "Métricas de Marketing/Produto/Técnico",
+        "Sistema de Alertas"
+      ],
+      "model": "Gemini Flash / Kimi Flash"
+    },
+    "Watcher": {
+      "role": "Observador",
+      "tier": "Cheap",
+      "skills_count": 7,
+      "primary_categories": [
+        "estratégica",
+        "analítica"
+      ],
+      "key_skills": [
+        "Social Listening",
+        "Competitor Tracking",
+        "Trend Detection"
+      ],
+      "model": "Gemini Flash / Kimi Flash"
+    }
+  },
+  "frameworks": {
+    "RAL-001": "Análise de Tarefas (Chain-of-Thought)",
+    "RAL-002": "Decisão Swarm vs Single",
+    "RAL-007": "Síntese em 4 Camadas",
+    "SCO-001": "Framework ESTRATEGIC",
+    "MAX-002": "Metodologia DEBUG",
+    "MAY-002": "Framework AIDA",
+    "MAY-003": "Framework PAS",
+    "TRA-001": "Processo de Análise Estruturado",
+    "WAT-004": "Framework Competitor Tracking",
+    "WAT-005": "Framework Trend Detection"
+  },
+  "skill_chains": {
+    "coordenação_completa": [
+      "RAL-001",
+      "RAL-002",
+      "RAL-003",
+      "RAL-004",
+      "RAL-005",
+      "RAL-007"
+    ],
+    "research_completo": [
+      "SCO-001",
+      "SCO-004",
+      "SCO-005",
+      "SCO-006",
+      "SCO-007"
+    ],
+    "desenvolvimento_completo": [
+      "MAX-001",
+      "MAX-006",
+      "MAX-003",
+      "MAX-004"
+    ],
+    "copy_completo": [
+      "MAY-001",
+      "MAY-002",
+      "MAY-004",
+      "MAY-005",
+      "MAY-006"
+    ],
+    "analytics_completo": [
+      "TRA-001",
+      "TRA-006",
+      "TRA-007",
+      "TRA-009"
+    ],
+    "monitoramento_completo": [
+      "WAT-001",
+      "WAT-002",
+      "WAT-003",
+      "WAT-006"
+    ]
+  },
+  "query_patterns": {
+    "by_category": "skills.category == {category}",
+    "by_agent": "skills.agent == {agent}",
+    "by_complexity": "skills.complexity == {level}",
+    "by_tag": "{tag} in skills.tags",
+    "prerequisites_of": "{skill_id} in skills.prerequisites",
+    "dependent_on": "skills.id in {skill_id}.prerequisites",
+    "fundamental": "len(skills.prerequisites) == 0"
+  }
+}

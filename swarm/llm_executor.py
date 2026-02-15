@@ -36,8 +36,8 @@ MODEL_CONFIGS = {
         'timeout': 120
     },
     'kimi-k2': {
-        'provider': 'kimi-coding',
-        'model': 'kimi-k2p5',
+        'provider': 'kimi-code',
+        'model': 'kimi-for-coding',
         'cost_per_1k_input': 0.002,    # Estimado
         'cost_per_1k_output': 0.008,   # Estimado
         'max_tokens': 32000,
@@ -63,12 +63,12 @@ MODEL_CONFIGS = {
 
 # Agent to model mapping
 AGENT_MODELS = {
-    'ralph': 'kimi-k2',           # Expensive - complex decisions
-    'scout': 'gemini-flash',      # Cheap - research
-    'max': 'claude-sonnet',       # Medium - code quality
-    'maya': 'gemini-flash',       # Cheap - copywriting
-    'tracker': 'gemini-flash',    # Cheap - analytics
-    'watcher': 'gemini-flash'     # Cheap - monitoring
+    'ralph': 'kimi-k2',
+    'scout': 'kimi-k2',
+    'max': 'kimi-k2',
+    'maya': 'kimi-k2',
+    'tracker': 'kimi-k2',
+    'watcher': 'kimi-k2'
 }
 
 @dataclass
@@ -205,40 +205,37 @@ class LLMExecutor:
     
     def _call_llm(self, call: LLMCall) -> LLMCall:
         """
-        Faz chamada real ao LLM via kimi CLI.
+        Faz chamada real ao LLM via kimi CLI usando stdin.
         """
-        model_config = MODEL_CONFIGS.get(call.model, MODEL_CONFIGS['gemini-flash'])
+        model_config = MODEL_CONFIGS.get(call.model, MODEL_CONFIGS['kimi-k2'])
         provider_model = f"{model_config['provider']}/{model_config['model']}"
         
         start_time = time.time()
         
         try:
-            # Construir comando kimi
-            cmd = [
-                'kimi',
-                '--model', provider_model,
-                '--print',
-                '--quiet',
-                '--prompt', call.prompt
-            ]
+            # Usar stdin em vez de --prompt
+            process = subprocess.Popen(
+                ['kimi', '--model', provider_model, '--print', '--quiet'],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
             
-            # Executar com timeout
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
+            stdout, stderr = process.communicate(
+                input=call.prompt,
                 timeout=model_config['timeout']
             )
             
             duration_ms = int((time.time() - start_time) * 1000)
             
-            if result.returncode != 0:
-                call.error = f"kimi CLI error: {result.stderr}"
+            if process.returncode != 0:
+                call.error = f"kimi CLI error: {stderr}"
                 call.duration_ms = duration_ms
                 return call
             
             # Sucesso
-            call.response = result.stdout
+            call.response = stdout
             call.tokens_in = self._estimate_tokens(call.prompt)
             call.tokens_out = self._estimate_tokens(call.response)
             call.duration_ms = duration_ms
