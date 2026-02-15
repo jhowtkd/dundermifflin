@@ -141,3 +141,58 @@ Jeff: "Show, obrigado"
 **Quer reativar o Ralph?**
 - Mudar no `.env`: `RALPH_DISABLED=false`
 - Restartar o bridge
+
+---
+
+## 🆕 Integração com Telegram (Novo!)
+
+Agora você pode falar comigo **diretamente aqui no Telegram**, sem precisar ir no Discord.
+
+### Como funciona:
+
+**Eu detecto automaticamente quando você quer algo:**
+
+```
+Jeff: "Preciso de uma função de login"
+      ↑ Detecto: TASK
+Claw: 🤔 Análise: médio, vou chamar Max. ~15 min. Quer que eu prossiga?
+
+Jeff: "sim"
+Claw: ✅ Max completou. [resultado aqui no Telegram]
+```
+
+### O que eu entendo como tarefa:
+
+Frases que ativam o Claw:
+- "Preciso...", "Quero..."
+- "Cria...", "Faz...", "Implementa..."
+- "Adiciona...", "Ajusta...", "Corrige..."
+- "Verifica...", "Analisa...", "Pesquisa..."
+- "Deploya...", "Publica...", "Sobe..."
+- "Remove...", "Deleta...", "Exclui..."
+
+Também funciona em inglês: "Create...", "Build...", "Implement...", etc.
+
+### Aprovação rápida:
+
+Quando eu pergunto se pode prosseguir:
+- `sim`, `s`, `yes`, `ok` → **Aprova** ✅
+- `não`, `nao`, `n`, `no`, `cancela` → **Cancela** ❌
+
+### O que eu ignoro (conversa normal):
+
+- "Obrigado", "Valeu", "Thanks"
+- "Tá bom", "Beleza", "Entendi", "kkkk"
+- Perguntas: "Qual é...", "Como está..."
+- Saudações: "Oi", "Bom dia"
+
+### Arquivos da integração:
+
+- `swarm/claw_intent_handler.py` - Detecta intenções
+- `swarm/claw_telegram.py` - Interface Telegram
+
+### Teste agora:
+
+Tenta: **"Cria uma função de exemplo"**
+
+Eu vou detectar como task, analisar, e perguntar se pode executar.
