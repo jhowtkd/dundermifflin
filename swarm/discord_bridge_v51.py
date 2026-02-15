@@ -61,6 +61,15 @@ except ImportError as e:
     logger.warning(f"Loop commands não disponível: {e}")
     LOOP_COMMANDS_AVAILABLE = False
 
+# Import Forum Handlers
+try:
+    from forum_handlers import ForumHandlers
+    HAS_FORUM_HANDLERS = True
+    logger.info("✅ Forum handlers disponíveis")
+except ImportError as e:
+    logger.warning(f"Forum handlers não disponível: {e}")
+    HAS_FORUM_HANDLERS = False
+
 # Database path
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'dunder_mifflin.db')
 PENDING_MESSAGES_TABLE = "discord_pending_messages"
@@ -255,6 +264,15 @@ class SwarmDiscordBridge(discord.Client):
         self.command_prefix = "!ralph"
         self.output_channel_name = "ralph-output"
         self.processing_pending = False
+        
+        # Inicializa forum handlers se disponível
+        self.forum = None
+        if HAS_FORUM_HANDLERS:
+            try:
+                self.forum = ForumHandlers(self, DB_PATH)
+                logger.info("✅ Forum handlers inicializados")
+            except Exception as e:
+                logger.error(f"❌ Erro ao inicializar forum handlers: {e}")
 
     def get_project_context(self, message: discord.Message) -> str:
         """Extrai contexto do projeto do nome do canal"""
@@ -434,6 +452,22 @@ class SwarmDiscordBridge(discord.Client):
         """Handler de mensagens com fila persistente"""
         if message.author.bot:
             return
+        
+        # VERIFICA SE É MENÇÃO NO FÓRUM PRIMEIRO
+        if HAS_FORUM_HANDLERS and isinstance(message.channel, discord.Thread) and self.forum:
+            # Detecta automaticamente se é um fórum
+            is_forum = False
+            if message.channel.parent:
+                is_forum = getattr(message.channel.parent, 'type', None) and message.channel.parent.type.value == 15
+            
+            if is_forum:
+                logger.info(f"📁 Fórum detectado: {message.channel.name}")
+                logger.info(f"   Menciona bot? {self.user in message.mentions}")
+                
+                if self.user in message.mentions:
+                    logger.info(f"📢 Menção no fórum detectada: {message.channel.name}")
+                    await self.forum.on_message(message)
+                    return  # Não processa como mensagem normal
         
         # Adiciona à fila persistente ANTES de processar
         pending_queue.add(
@@ -726,6 +760,17 @@ Para rejeitar, explique o que precisa mudar."""
             logger.error(f"Erro na aprovação: {e}")
             return False
 
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        """Handler de reações - delega para forum handlers se disponível"""
+        if payload.user_id == self.user.id:
+            return
+        
+        if HAS_FORUM_HANDLERS and self.forum:
+            try:
+                await self.forum.on_raw_reaction_add(payload)
+            except Exception as e:
+                logger.error(f"Erro ao processar reação: {e}")
+
     async def _handle_command(self, message: discord.Message):
         """Handler de comandos"""
         content = message.content[len(self.command_prefix):].strip()
@@ -926,7 +971,7 @@ Para rejeitar, explique o que precisa mudar."""
             await message.reply(f"❌ Erro: {e}")
 
     async def _cmd_task(self, message: discord.Message, args: list):
-        """Cria nova task"""
+        """Cria nova task com perguntas de clarificação"""
         if not args:
             await message.reply("❌ Uso: `!ralph task <descrição>`")
             return
@@ -936,6 +981,8 @@ Para rejeitar, explique o que precisa mudar."""
 
         try:
             from ralph_swarm_core import SwarmTaskManager
+            from agent_brain import AgentBrain
+            
             tasks = SwarmTaskManager()
 
             project_brief = self.load_project_brief(project)
@@ -944,6 +991,7 @@ Para rejeitar, explique o que precisa mudar."""
             if project_brief:
                 full_request += f"\n\n[CONTEXT]:\n{project_brief[:1500]}..."
 
+            # Cria a task
             task = tasks.create_task(
                 original_request=full_request,
                 coordinator_agent_slug='ralph',
@@ -952,18 +1000,45 @@ Para rejeitar, explique o que precisa mudar."""
                 channel_id=message.channel.id
             )
 
+            # 🎩 Ralph gera perguntas de clarificação
+            ralph_brain = AgentBrain('ralph')
+            questions = ralph_brain.ask_clarifying_questions(full_request)
+            
+            # Formata as perguntas
+            questions_text = "\n".join([f"{i+1}. {q}" for i, q in enumerate(questions)])
+            
+            # Salva as perguntas na task
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE swarm_tasks 
+                SET questions_asked = ?
+                WHERE id = ?
+            """, (questions_text, task.id))
+            conn.commit()
+            conn.close()
+
+            # Envia confirmação da task
             embed = discord.Embed(
                 title="✅ Tarefa Criada",
                 description=f"**Projeto:** {project}\n**Descrição:** {task_description}",
                 color=0x00FF00
             )
             embed.add_field(name="Task ID", value=f"`{task.task_code}`", inline=True)
-            embed.set_footer(text="🎩 Ralph vai analisar e fazer perguntas")
-
             await message.reply(embed=embed)
             await message.add_reaction("✅")
+            
+            # Envia as perguntas de clarificação
+            questions_embed = discord.Embed(
+                title="🎩 Perguntas do Ralph",
+                description="Para entender melhor sua tarefa, preciso das seguintes informações:\n\n" + questions_text,
+                color=0x3498db
+            )
+            questions_embed.set_footer(text="Responda a todas as perguntas em uma única mensagem para prosseguir com o plano.")
+            await message.channel.send(embed=questions_embed)
 
         except Exception as e:
+            logger.error(f"Erro ao criar task: {e}")
             await message.reply(f"❌ Erro: {e}")
 
     async def _cmd_rag(self, message: discord.Message, parts: list):

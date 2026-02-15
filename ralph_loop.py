@@ -1,6 +1,8 @@
 """
 Ralph Loop Integration Module
 Integra o sistema Ralph Loop com o Worker V3
+
+NOTE: Ralph está DESATIVADO. Use Claw Coordinator em vez disso.
 """
 
 import os
@@ -14,6 +16,11 @@ from datetime import datetime, date
 from typing import Dict, List, Optional
 
 logger = logging.getLogger("ralph-loop")
+
+# Verifica se Ralph está desativado
+RALPH_DISABLED = os.getenv("RALPH_DISABLED", "false").lower() == "true"
+if RALPH_DISABLED:
+    logger.warning("🚫 Ralph está DESATIVADO. Use Claw Coordinator.")
 
 DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
 RESULTS_DIR = Path(__file__).parent / "loops" / "results"
@@ -35,6 +42,10 @@ def get_db():
 def create_loop(agent_slug: str, task_description: str, max_iterations: int = 20,
                 completion_promise: str = "RALPH_COMPLETE") -> str:
     """Cria um novo Ralph Loop"""
+    if RALPH_DISABLED:
+        logger.error("❌ Ralph está DESATIVADO. Use Claw Coordinator: !ralph claw <tarefa>")
+        raise RuntimeError("Ralph está desativado. Use o Claw Coordinator.")
+    
     loop_code = f"RALPH-{uuid.uuid4().hex[:12].upper()}"
     
     conn = get_db()

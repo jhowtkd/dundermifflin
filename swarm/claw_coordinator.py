@@ -18,6 +18,13 @@ from enum import Enum
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Import Skill Dispatcher
+try:
+    from claw_skill_dispatcher import get_skill_dispatcher
+    HAS_SKILL_DISPATCHER = True
+except ImportError:
+    HAS_SKILL_DISPATCHER = False
+
 class ComplexityLevel(Enum):
     SIMPLE = "simple"      # Eu faço direto
     MEDIUM = "medium"      # Spawno 1 subagente
@@ -111,6 +118,10 @@ class ClawCoordinator:
         self.mode = mode  # "ask_first", "execute_report", "silent"
         self.decision_history: List[ClawDecision] = []
         self.current_context: Dict[str, Any] = {}
+        self.pending_heartbeat: Optional[Dict] = None
+        
+        # Skill dispatcher
+        self.skill_dispatcher = get_skill_dispatcher() if HAS_SKILL_DISPATCHER else None
         
     def analyze_request(self, request: str) -> TaskAnalysis:
         """
@@ -216,8 +227,16 @@ class ClawCoordinator:
         """Executa a ação decidida"""
         analysis = decision.analysis
         
+        # Tenta usar skill primeiro (se disponível)
+        if self.skill_dispatcher:
+            skill_result = await self._try_skill_execution(decision.user_request)
+            if skill_result:
+                decision.executed = True
+                decision.result = skill_result
+                return skill_result
+        
         if analysis.action == ActionType.DIRECT:
-            # Eu faço diretamente (implementação simulada por enquanto)
+            # Eu faço diretamente
             decision.executed = True
             decision.result = f"✅ Resolvi diretamente: {decision.user_request[:50]}..."
             return decision.result
@@ -234,6 +253,19 @@ class ClawCoordinator:
             results = await self._spawn_parallel(analysis.agents_needed, decision.user_request)
             decision.result = self._synthesize_results(results)
             return decision.result
+    
+    async def _try_skill_execution(self, task: str) -> Optional[str]:
+        """Tenta executar via skill dispatcher"""
+        if not self.skill_dispatcher:
+            return None
+        
+        # Detecta se tem skill adequada
+        skill_id = self.skill_dispatcher.detect_skill(task)
+        if skill_id:
+            result = await self.skill_dispatcher.execute_with_skill(task)
+            if result.get('success'):
+                return f"✅ Executado via skill **{skill_id}**:\n{result.get('result', 'Concluído')}"
+        return None
     
     async def _spawn_agent(self, agent_slug: str, task: str) -> str:
         """Spawna um subagente e retorna resultado"""

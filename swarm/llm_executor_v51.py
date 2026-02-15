@@ -120,59 +120,52 @@ class LLMExecutor:
     
     def _call_llm_api(self, call: LLMCall) -> LLMCall:
         """
-        Faz chamada direta à API HTTP.
+        Faz chamada ao LLM via CLI do Kimi.
         """
-        model_config = MODEL_CONFIGS.get(call.model, MODEL_CONFIGS['kimi-k2'])
+        import subprocess
+        import shlex
         
+        model_config = MODEL_CONFIGS.get(call.model, MODEL_CONFIGS['kimi-k2'])
         start_time = time.time()
         
         try:
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {self.api_key}'
-            }
+            # Usa a CLI do Kimi via subprocess
+            # O Kimi CLI aceita stdin e retorna o resultado no stdout
+            process = subprocess.Popen(
+                ['kimi', '--print'],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                cwd=str(Path.home() / ".openclaw/workspace/projects/dunder-mifflin")
+            )
             
-            payload = {
-                'model': model_config['model'],
-                'messages': [
-                    {'role': 'user', 'content': call.prompt}
-                ],
-                'max_tokens': model_config['max_tokens']
-            }
-            
-            response = requests.post(
-                model_config['api_url'],
-                headers=headers,
-                json=payload,
+            stdout, stderr = process.communicate(
+                input=call.prompt,
                 timeout=model_config['timeout']
             )
             
             duration_ms = int((time.time() - start_time) * 1000)
             
-            if response.status_code != 200:
-                call.error = f"API error {response.status_code}: {response.text}"
+            if process.returncode != 0:
+                call.error = f"kimi CLI error: {stderr[:200]}"
                 call.duration_ms = duration_ms
                 return call
             
-            data = response.json()
-            
-            # Extrair resposta
-            if 'choices' in data and len(data['choices']) > 0:
-                call.response = data['choices'][0]['message']['content']
-            else:
-                call.error = "No response in API output"
-                call.duration_ms = duration_ms
-                return call
-            
-            # Calcular tokens
-            call.tokens_in = data.get('usage', {}).get('prompt_tokens', self._estimate_tokens(call.prompt))
-            call.tokens_out = data.get('usage', {}).get('completion_tokens', self._estimate_tokens(call.response))
+            # Sucesso - extrai o conteúdo do stdout
+            call.response = stdout.strip()
+            call.tokens_in = self._estimate_tokens(call.prompt)
+            call.tokens_out = self._estimate_tokens(call.response)
             call.duration_ms = duration_ms
             call.cost_usd = self._calculate_cost(call.model, call.tokens_in, call.tokens_out)
             
-        except requests.Timeout:
+        except subprocess.TimeoutExpired:
             call.error = f"Timeout after {model_config['timeout']}s"
             call.duration_ms = int((time.time() - start_time) * 1000)
+            try:
+                process.kill()
+            except:
+                pass
         except Exception as e:
             call.error = str(e)
             call.duration_ms = int((time.time() - start_time) * 1000)

@@ -1,0 +1,73 @@
+--- a/swarm/discord_bridge.py
++++ b/swarm/discord_bridge.py
+@@ -20,6 +20,10 @@ from typing import Optional, Dict, Any
+ from datetime import datetime
+ from pathlib import Path
+ 
++# Import Forum Integration
++import sys
++sys.path.insert(0, str(Path(__file__).parent))
++from forum_handlers import setup_forum_handlers, FORUM_CHANNEL_IDS
++
+ # Setup logging
+ logging.basicConfig(
+     level=logging.INFO,
+@@ -135,6 +139,9 @@ class RalphSwarmBot(discord.Client):
+         self.pending_queue = PendingMessageQueue(DB_PATH)
+         self.processing = False
+         
++        # Setup Forum Integration
++        self.forum = setup_forum_handlers(self)
++        
+         # Signals
+         signal.signal(signal.SIGTERM, self._signal_handler)
+         signal.signal(signal.SIGINT, self._signal_handler)
+@@ -150,12 +157,29 @@ class RalphSwarmBot(discord.Client):
+         logger.info(f"✅ Bot conectado: {self.user}")
+         logger.info(f"   Guilds: {len(self.guilds)}")
+     
++    async def on_thread_create(self, thread: discord.Thread):
++        """Novo thread criado no fórum"""
++        await self.forum.on_thread_create(thread)
++    
+     async def on_message(self, message: discord.Message):
+         """Processa mensagens do Discord"""
+         
++        # Ignora mensagens do próprio bot
+         if message.author.bot:
+             return
+         
++        # VERIFICA SE É MENÇÃO NO FÓRUM PRIMEIRO
++        if isinstance(message.channel, discord.Thread):
++            # Verifica se é canal de fórum monitorado
++            if not FORUM_CHANNEL_IDS or message.channel.parent_id in FORUM_CHANNEL_IDS:
++                # Verifica se menciona o bot
++                if self.user in message.mentions:
++                    logger.info(f"📢 Menção no fórum detectada: {message.channel.name}")
++                    await self.forum.on_message(message)
++                    return  # Não processa como mensagem normal
++        
++        # Processa comandos normais (!ralph, etc)
++        await self._handle_commands(message)
++    
++    async def _handle_commands(self, message: discord.Message):
++        """Processa comandos de texto (!ralph, etc)"""
+         content = message.content.strip()
+         
+         # Só processa comandos que começam com !ralph
+@@ -290,6 +314,15 @@ class RalphSwarmBot(discord.Client):
+             logger.error(f"❌ Erro no comando: {e}")
+             await message.reply(f"❌ Erro: {str(e)}")
+     
++    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
++        """Processa reações"""
++        # Ignora reações do próprio bot
++        if payload.user_id == self.user.id:
++            return
++        
++        # Processa reações de planos do fórum
++        await self.forum.on_raw_reaction_add(payload)
++    
+     async def _call_claw(self, task_code: str):
+         """Chama o Claw para processar task"""
+         logger.info(f"🤖 Chamando Claw para task: {task_code}")

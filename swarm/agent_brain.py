@@ -19,10 +19,14 @@ from ralph_swarm_core import ChannelSystem, SwarmAgentManager, SwarmTaskManager,
 # Import LLM Executor (optional, falls back to simulation)
 try:
     sys.path.insert(0, str(Path(__file__).parent))
-    from llm_executor import LLMExecutor, AGENT_MODELS
+    from llm_executor_v51 import LLMExecutor, AGENT_MODELS
     HAS_LLM_EXECUTOR = True
 except ImportError:
-    HAS_LLM_EXECUTOR = False
+    try:
+        from llm_executor import LLMExecutor, AGENT_MODELS
+        HAS_LLM_EXECUTOR = True
+    except ImportError:
+        HAS_LLM_EXECUTOR = False
 
 # Import RAG Memory
 try:
@@ -246,6 +250,60 @@ Execute agora:"""
             return 'planning'
         else:
             return 'general'
+
+    def ask_clarifying_questions(self, task_description: str) -> List[str]:
+        """
+        Gera perguntas de clarificação inteligentes baseadas na descrição da tarefa.
+        Usado pelo Ralph antes de criar o plano de execução.
+
+        Args:
+            task_description: Descrição da tarefa
+
+        Returns:
+            Lista de perguntas relevantes para entender melhor a tarefa
+        """
+        task_lower = task_description.lower()
+
+        # Detectar tipo de tarefa para gerar perguntas relevantes
+        questions = []
+
+        # Perguntas gerais aplicáveis a qualquer tarefa
+        questions.append("Qual é o objetivo principal desta tarefa? (ex: informar, vender, educar, analisar)")
+        questions.append("Quem é o público-alvo ou destinatário deste trabalho?")
+        questions.append("Há algum prazo específico ou urgência?")
+
+        # Perguntas específicas por tipo de tarefa
+        if any(kw in task_lower for kw in ['copy', 'escrever', 'headline', 'linkedin', 'conteúdo', 'post', 'blog']):
+            # Tarefas de copywriting/conteúdo
+            questions.append("Qual tom de voz deve ser usado? (formal, casual, técnico, inspirador, etc.)")
+            questions.append("Há palavras-chave ou termos específicos que devem ser incluídos?")
+            questions.append("Qual é a ação principal que você quer que o leitor tome?")
+
+        elif any(kw in task_lower for kw in ['código', 'build', 'implementar', 'script', 'api', 'desenvolver', 'sistema']):
+            # Tarefas de desenvolvimento
+            questions.append("Qual linguagem/framework prefere usar?")
+            questions.append("Há requisitos técnicos específicos ou restrições?")
+            questions.append("Precisa de integração com algum serviço ou API externa?")
+            questions.append("Qual o nível de prioridade: POC/MVP ou produção?")
+
+        elif any(kw in task_lower for kw in ['research', 'pesquisa', 'analisar', 'concorrentes', 'benchmark', 'métricas']):
+            # Tarefas de research/análise
+            questions.append("Quais são os principais concorrentes ou referências que já conhece?")
+            questions.append("Há métricas específicas que devem ser analisadas?")
+            questions.append("Qual o formato de entrega preferido? (relatório, planilha, apresentação)")
+            questions.append("Precisa de dados em tempo real ou informações históricas são suficientes?")
+
+        elif any(kw in task_lower for kw in ['plano', 'estratégia', 'coordenar', 'planejar']):
+            # Tarefas de planejamento
+            questions.append("Qual é o orçamento ou recursos disponíveis?")
+            questions.append("Há restrições ou dependências que devem ser consideradas?")
+            questions.append("Quais são os critérios de sucesso deste plano?")
+
+        # Pergunta final sempre presente
+        questions.append("Há mais algum contexto ou informação importante que eu deveria saber?")
+
+        # Limitar a 5 perguntas para não sobrecarregar
+        return questions[:5]
 
     def _simulate_response(self, task: str) -> str:
         """Simula resposta do agent (substituir por chamada LLM real)"""

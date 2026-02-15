@@ -31,6 +31,9 @@ logger = logging.getLogger('discord_bridge')
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Import Forum Integration
+from forum_handlers import setup_forum_handlers, FORUM_CHANNEL_IDS
+
 # Import RAG Memory
 try:
     from swarm.rag_memory import get_rag_memory
@@ -39,6 +42,28 @@ try:
 except ImportError:
     HAS_RAG = False
     rag_memory = None
+
+# Import Deploy Integration
+sys.path.insert(0, str(Path(__file__).parent))
+try:
+    from deploy_integration import DeployCommandHandler
+    DEPLOY_AVAILABLE = True
+    deploy_handler = DeployCommandHandler()
+except ImportError as e:
+    logger.warning(f"Deploy integration não disponível: {e}")
+    DEPLOY_AVAILABLE = False
+    deploy_handler = None
+
+# Import Claw Coordinator
+sys.path.insert(0, str(Path(__file__).parent))
+try:
+    from claw_coordinator import ClawCoordinator, get_coordinator
+    CLAW_AVAILABLE = True
+    claw = get_coordinator()
+except ImportError as e:
+    logger.warning(f"Claw Coordinator não disponível: {e}")
+    CLAW_AVAILABLE = False
+    claw = None
 
 # Load token
 env_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -255,6 +280,9 @@ class SwarmDiscordBridge(discord.Client):
         self.command_prefix = "!ralph"
         self.output_channel_name = "ralph-output"
         self.processing_pending = False
+        
+        # Setup Forum Integration
+        self.forum = setup_forum_handlers(self)
 
     def get_project_context(self, message: discord.Message) -> str:
         """Extrai contexto do projeto do nome do canal"""
@@ -434,6 +462,33 @@ class SwarmDiscordBridge(discord.Client):
         """Handler de mensagens com fila persistente"""
         if message.author.bot:
             return
+
+        # 🚀 DETECTA COMANDOS DE DEPLOY NATURAIS - PRIMEIRO!
+        # Isso previne que "deploya o dashboard" vire uma task do swarm
+        if DEPLOY_AVAILABLE and deploy_handler and deploy_handler.is_deploy_command(message.content):
+            await self._handle_natural_deploy(message)
+            return  # Não processa como mensagem normal
+
+        # VERIFICA SE É MENÇÃO NO FÓRUM PRIMEIRO
+        if isinstance(message.channel, discord.Thread):
+            # Detecta automaticamente se é um fórum (ForumChannel = type 15)
+            is_forum = False
+            if message.channel.parent:
+                # Discord.py 2.0+: ForumChannel tem type 15
+                is_forum = getattr(message.channel.parent, 'type', None) and message.channel.parent.type.value == 15
+            
+            # Se FORUM_CHANNEL_IDS estiver vazio, aceita qualquer fórum
+            # Se tiver valores, só aceita os fóruns listados
+            channel_allowed = not FORUM_CHANNEL_IDS or message.channel.parent_id in FORUM_CHANNEL_IDS
+            
+            if is_forum and channel_allowed:
+                logger.info(f"📁 Fórum detectado: {message.channel.name} (parent: {message.channel.parent_id})")
+                logger.info(f"   Menciona bot? {self.user in message.mentions}")
+                
+                if self.user in message.mentions:
+                    logger.info(f"📢 Menção no fórum detectada: {message.channel.name}")
+                    await self.forum.on_message(message)
+                    return  # Não processa como mensagem normal
         
         # Adiciona à fila persistente ANTES de processar
         pending_queue.add(
@@ -480,6 +535,53 @@ class SwarmDiscordBridge(discord.Client):
 
         await self._check_and_relay_any_channel(message)
         pending_queue.mark_processed(str(message.id))
+
+    async def _handle_natural_deploy(self, message: discord.Message):
+        """Processa comandos de deploy em linguagem natural"""
+        # Envia reação imediata
+        await message.add_reaction("🚀")
+        
+        # Envia mensagem de status
+        status_msg = await message.reply("🚀 Detectado comando de deploy! Iniciando...")
+        
+        try:
+            # Executa deploy
+            result = await deploy_handler.handle(
+                message.content, 
+                agent_slug="ralph",
+                mission_id=f"discord-deploy-{message.id}"
+            )
+            
+            if result:
+                # Edita mensagem com resultado
+                await status_msg.edit(content=result)
+                
+                # Adiciona reação de sucesso/falha
+                if "✅" in result:
+                    await message.add_reaction("✅")
+                elif "❌" in result:
+                    await message.add_reaction("❌")
+            else:
+                await status_msg.edit(content="❓ Não entendi o comando de deploy. Tente: `!ralph projects` para ver disponíveis.")
+                await message.add_reaction("❓")
+                
+        except Exception as e:
+            logger.error(f"Erro no deploy natural: {e}")
+            await status_msg.edit(content=f"❌ Erro: {str(e)[:200]}")
+            await message.add_reaction("❌")
+
+    async def on_thread_create(self, thread: discord.Thread):
+        """Novo thread criado no fórum"""
+        await self.forum.on_thread_create(thread)
+
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        """Processa reações"""
+        # Ignora reações do próprio bot
+        if payload.user_id == self.user.id:
+            return
+        
+        # Processa reações de planos do fórum
+        await self.forum.on_raw_reaction_add(payload)
 
     async def _handle_thread_feedback(self, message: discord.Message):
         """Processa feedback em threads"""
@@ -578,6 +680,14 @@ class SwarmDiscordBridge(discord.Client):
             await self._cmd_rag(message, parts[1:])
         elif command == "loop":
             await self._cmd_loop(message, parts[1:])
+        elif command == "deploy":
+            await self._cmd_deploy(message, parts[1:])
+        elif command == "projects":
+            await self._cmd_projects(message)
+        elif command == "claw":
+            await self._cmd_claw(message, parts[1:])
+        elif command == "modo":
+            await self._cmd_modo(message, parts[1:])
         else:
             await message.reply("❓ Comando desconhecido. Use `!ralph help`")
 
@@ -599,22 +709,40 @@ class SwarmDiscordBridge(discord.Client):
             inline=False
         )
         
-        # Seção de Loops (sempre mostrar, mas indicar se disponível)
-        loop_section = (
-            "`!ralph loop <agente> \"<tarefa>\" [--max N]` - Inicia loop iterativo\n"
-            "`!ralph loops` - Lista loops ativos\n"
-            "`!ralph loop status <código>` - Status detalhado de um loop\n"
-            "`!ralph loop pause <código>` - Pausa um loop em execução\n"
-            "`!ralph loop resume <código>` - Retoma um loop pausado\n"
-            "`!ralph loop stop <código>` - Para um loop\n"
-            "`!ralph loop history <código>` - Histórico de iterações\n"
-            "`!ralph loop help` - Ajuda específica de loops"
+        embed.add_field(
+            name="🚀 Deploy",
+            value=(
+                "`!ralph deploy <projeto>` - Deploya projeto\n"
+                "`!ralph deploy <projeto> staging` - Deploy em staging\n"
+                "`!ralph projects` - Lista projetos configurados"
+            ),
+            inline=False
         )
         
+        # Seção de Loops (substituído pelo Claw)
         if LOOP_COMMANDS_AVAILABLE:
             embed.add_field(
-                name="🔄 Loops (Iteração Contínua)",
-                value=loop_section,
+                name="🔄 Loops (Legado - use Claw)",
+                value="Loops foram substituídos pelo **Claw Coordinator**. Use `!ralph claw <tarefa>`",
+                inline=False
+            )
+        
+        # Seção do Claw Coordinator
+        if CLAW_AVAILABLE:
+            embed.add_field(
+                name="🤖 Claw Coordinator (Novo)",
+                value=(
+                    "`!ralph claw <tarefa>` - Delega tarefa pro Claw analisar e executar\n"
+                    "`!ralph claw` - Status do coordinator\n"
+                    "`!ralph modo` - Ver modo atual\n"
+                    "`!ralph modo <modo>` - Altera modo (ask_first/execute_report/silent)\n\n"
+                    "**Como funciona:**\n"
+                    "• Você fala comigo (Claw)\n"
+                    "• Eu analiso a complexidade\n"
+                    "• Decido: faço direto, chamo 1 especialista, ou coordeno vários\n"
+                    "• No modo `ask_first`, pergunto antes de executar\n"
+                    "• Entrego resultado final, sem você gerenciar quem fez o quê"
+                ),
                 inline=False
             )
         else:
@@ -815,12 +943,122 @@ class SwarmDiscordBridge(discord.Client):
             await message.reply("❓ Use: `!ralph rag status`")
 
     async def _cmd_loop(self, message: discord.Message, parts: list):
-        """Comandos de loop (iteração contínua)"""
-        if not LOOP_COMMANDS_AVAILABLE:
-            await message.reply("❌ Sistema de loops não disponível. Verifique os logs.")
+        """Comandos de loop (iteração contínua) - DESATIVADO (use claw)"""
+        await message.reply("🔄 Loops foram substituídos pelo **Claw Coordinator**. Use `!ralph claw <tarefa>`")
+
+    async def _cmd_claw(self, message: discord.Message, parts: list):
+        """Claw Coordinator - processa tarefas diretamente"""
+        if not CLAW_AVAILABLE or not claw:
+            await message.reply("❌ Claw Coordinator não disponível. Verifique os logs.")
             return
         
-        await handle_loop_command(self, message, parts)
+        if not parts:
+            # Mostra status
+            status = claw.get_status()
+            await message.reply(status)
+            return
+        
+        # Junta o resto como a tarefa
+        task = " ".join(parts)
+        
+        # Reação imediata
+        await message.add_reaction("🤖")
+        
+        # Processa pela Claw
+        try:
+            result = await claw.process_request(task)
+            
+            # Se precisa de aprovação (modo ask_first)
+            if "Quer que eu prossiga?" in result:
+                await message.reply(result)
+                # Salva referência da mensagem pra aprovação depois
+                # (simplificado por enquanto)
+            else:
+                # Já executou
+                await message.reply(result)
+                await message.add_reaction("✅")
+                
+        except Exception as e:
+            logger.error(f"Erro no Claw: {e}")
+            await message.reply(f"❌ Erro: {str(e)[:200]}")
+            await message.add_reaction("❌")
+
+    async def _cmd_modo(self, message: discord.Message, parts: list):
+        """Altera modo de operação do Claw"""
+        if not CLAW_AVAILABLE or not claw:
+            await message.reply("❌ Claw Coordinator não disponível.")
+            return
+        
+        if not parts:
+            await message.reply(f"Modo atual: **{claw.mode}**\n\nModos disponíveis:\n- `ask_first`: Pergunta antes de executar\n- `execute_report`: Executa e reporta\n- `silent`: Executa silenciosamente")
+            return
+        
+        new_mode = parts[0].lower()
+        if new_mode not in ["ask_first", "execute_report", "silent"]:
+            await message.reply("❌ Modo inválido. Use: ask_first, execute_report, ou silent")
+            return
+        
+        claw.mode = new_mode
+        await message.reply(f"✅ Modo alterado para: **{new_mode}**")
+
+    async def _cmd_deploy(self, message: discord.Message, parts: list):
+        """Handler de deploy"""
+        if not DEPLOY_AVAILABLE or not deploy_handler:
+            await message.reply("❌ Sistema de deploy não disponível. Verifique os logs.")
+            return
+        
+        if not parts:
+            await message.reply("❌ Uso: `!ralph deploy <projeto> [ambiente]`\nExemplo: `!ralph deploy dashboard` ou `!ralph deploy api staging`")
+            return
+        
+        project_name = parts[0]
+        env = parts[1] if len(parts) > 1 else "production"
+        
+        # Monta comando natural
+        deploy_command = f"deploya o {project_name}"
+        if env != "production":
+            deploy_command += f" pra {env}"
+        
+        # Envia mensagem inicial
+        status_msg = await message.reply(f"🚀 Iniciando deploy de **{project_name}** ({env})...\n📊 Acompanhe em tempo real no Dashboard!")
+        
+        try:
+            # Executa deploy
+            result = await deploy_handler.handle(deploy_command, agent_slug="ralph")
+            
+            if result:
+                # Atualiza mensagem com resultado
+                if "✅" in result:
+                    await status_msg.edit(content=result)
+                elif "❌" in result:
+                    await status_msg.edit(content=result)
+                else:
+                    await status_msg.edit(content=f"📋 {result}")
+            else:
+                await status_msg.edit(content=f"❌ Projeto '{project_name}' não encontrado. Use `!ralph projects` para ver os disponíveis.")
+                
+        except Exception as e:
+            logger.error(f"Erro no deploy: {e}")
+            await status_msg.edit(content=f"❌ Erro durante deploy: {str(e)[:200]}")
+
+    async def _cmd_projects(self, message: discord.Message):
+        """Lista projetos disponíveis"""
+        if not DEPLOY_AVAILABLE or not deploy_handler:
+            await message.reply("❌ Sistema de deploy não disponível.")
+            return
+        
+        try:
+            projects_list = deploy_handler.deployer.list_available_projects()
+            embed = discord.Embed(
+                title="📁 Projetos Configurados",
+                description=projects_list[:4000] if projects_list else "Nenhum projeto encontrado.",
+                color=0x3498DB
+            )
+            embed.set_footer(text="Crie um .ralph-deploy.yml na raiz do projeto para adicionar")
+            await message.reply(embed=embed)
+        except Exception as e:
+            logger.error(f"Erro ao listar projetos: {e}")
+            await message.reply(f"❌ Erro ao listar projetos: {e}")
 
     async def _relay_to_swarm(self, message: discord.Message, from_reply: bool = False):
         """Relay para swarm"""

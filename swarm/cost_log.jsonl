@@ -37,3 +37,20 @@
 {"agent": "scout", "model": "kimi-k2", "timestamp": "2026-02-12T21:21:13.813346", "tokens_in": 141, "tokens_out": 431, "cost_usd": 0.0037300000000000002, "duration_ms": 27989, "success": true, "error": null}
 {"agent": "maya", "model": "kimi-k2", "timestamp": "2026-02-12T21:21:13.816834", "tokens_in": 129, "tokens_out": 678, "cost_usd": 0.005682000000000001, "duration_ms": 29867, "success": true, "error": null}
 {"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-12T21:21:43.700822", "tokens_in": 578, "tokens_out": 740, "cost_usd": 0.007076, "duration_ms": 13054, "success": true, "error": null}
+{"agent": "scout", "model": "kimi-k2", "timestamp": "2026-02-13T21:18:03.389082", "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0, "duration_ms": 695, "success": false, "error": "kimi CLI error: Expecting value: line 1 column 1 (char 0)\nSee logs: /home/clawd/.kimi/logs/kimi.log\n"}
+{"agent": "maya", "model": "kimi-k2", "timestamp": "2026-02-13T21:18:03.392503", "tokens_in": 169, "tokens_out": 1806, "cost_usd": 0.014786, "duration_ms": 25599, "success": true, "error": null}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-13T21:18:29.006894", "tokens_in": 533, "tokens_out": 1328, "cost_usd": 0.011690000000000002, "duration_ms": 20644, "success": true, "error": null}
+{"agent": "scout", "model": "kimi-k2", "timestamp": "2026-02-13T21:19:46.135421", "tokens_in": 165, "tokens_out": 1116, "cost_usd": 0.009258, "duration_ms": 46750, "success": true, "error": null}
+{"agent": "max", "model": "kimi-k2", "timestamp": "2026-02-13T21:19:46.137554", "tokens_in": 153, "tokens_out": 191, "cost_usd": 0.0018340000000000001, "duration_ms": 67554, "success": true, "error": null}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-13T21:20:53.706769", "tokens_in": 590, "tokens_out": 507, "cost_usd": 0.005235999999999999, "duration_ms": 13388, "success": true, "error": null}
+{"agent": "maya", "model": "kimi-k2", "timestamp": "2026-02-13T21:34:46.874580", "tokens_in": 162, "tokens_out": 1379, "cost_usd": 0.011356, "duration_ms": 44014, "success": true, "error": null}
+{"agent": "scout", "model": "kimi-k2", "timestamp": "2026-02-13T21:34:46.877359", "tokens_in": 174, "tokens_out": 1619, "cost_usd": 0.0133, "duration_ms": 63210, "success": true, "error": null}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-13T21:35:50.102856", "tokens_in": 610, "tokens_out": 1041, "cost_usd": 0.009548000000000001, "duration_ms": 19280, "success": true, "error": null}
+{"agent": "watcher", "model": "kimi-k2", "timestamp": "2026-02-13T21:36:38.168541", "tokens_in": 171, "tokens_out": 2059, "cost_usd": 0.016814, "duration_ms": 53437, "success": true, "error": null}
+{"agent": "scout", "model": "kimi-k2", "timestamp": "2026-02-13T21:36:38.177233", "tokens_in": 177, "tokens_out": 1367, "cost_usd": 0.01129, "duration_ms": 54151, "success": true, "error": null}
+{"agent": "tracker", "model": "kimi-k2", "timestamp": "2026-02-13T21:36:38.171826", "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0, "duration_ms": 180000, "success": false, "error": "Timeout after 180s"}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-13T21:39:38.188185", "tokens_in": 789, "tokens_out": 795, "cost_usd": 0.007938, "duration_ms": 13570, "success": true, "error": null}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-14T21:40:16.394113", "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0, "duration_ms": 180101, "success": false, "error": "Timeout after 180s"}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-14T21:43:17.137057", "tokens_in": 345, "tokens_out": 532, "cost_usd": 0.004946, "duration_ms": 131906, "success": true, "error": null}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-14T21:45:29.747298", "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0, "duration_ms": 180101, "success": false, "error": "Timeout after 180s"}
+{"agent": "ralph", "model": "kimi-k2", "timestamp": "2026-02-14T21:48:30.493360", "tokens_in": 323, "tokens_out": 371, "cost_usd": 0.003614, "duration_ms": 17631, "success": true, "error": null}
