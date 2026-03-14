@@ -6,15 +6,14 @@ Deployer Agent - Especialista em deploy via comandos naturais
 import os
 import re
 import asyncio
-import subprocess
 import aiohttp
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
-from project_registry import ProjectRegistry, get_registry, ProjectConfig
-from live_logger import LiveLogger, get_logger
+from project_registry import get_registry, ProjectConfig
+from live_logger import get_logger
 
 @dataclass
 class DeployResult:
