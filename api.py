@@ -5,7 +5,6 @@ Serve dados do banco local via HTTP
 """
 
 import os
-import sys
 import json
 import sqlite3
 from pathlib import Path
@@ -230,7 +229,6 @@ class APIHandler(BaseHTTPRequestHandler):
     
     def create_proposal(self, data):
         import time
-        from datetime import datetime
         
         agent_id = data.get("agentId")
         title = data.get("title")
