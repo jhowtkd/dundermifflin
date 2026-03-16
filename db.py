@@ -4,11 +4,6 @@ Dunder Mifflin Worker v2.0 - SQLite Local Edition
 Sem dependência do Convex, roda 100% local.
 """
 
-"""
-Dunder Mifflin Worker v2.0 - SQLite Local Edition
-Sem dependência do Convex, roda 100% local.
-"""
-
 import os
 import sys
 import time
@@ -18,10 +13,6 @@ from datetime import datetime
 from pathlib import Path
 
 # Constantes
-DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
-KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
-
-# Config
 DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
 KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
 
