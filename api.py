@@ -8,6 +8,8 @@ import os
 import sys
 import json
 import sqlite3
+import time
+from datetime import datetime
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -229,9 +231,6 @@ class APIHandler(BaseHTTPRequestHandler):
         self.send_json(stats)
     
     def create_proposal(self, data):
-        import time
-        from datetime import datetime
-        
         agent_id = data.get("agentId")
         title = data.get("title")
         description = data.get("description", "")
@@ -257,8 +256,6 @@ class APIHandler(BaseHTTPRequestHandler):
         self.send_json({"id": proposal_id, "code": code, "status": "created"})
     
     def approve_proposal(self, proposal_id, data):
-        from datetime import datetime
-        
         notes = data.get("notes", "")
         
         conn = get_db()
@@ -281,7 +278,6 @@ class APIHandler(BaseHTTPRequestHandler):
         """, (datetime.now().isoformat(), notes, proposal_id))
         
         # Cria missão
-        import time
         mission_code = f"MS-{int(time.time() * 1000):x}"
         cur.execute("""
             INSERT INTO missions (mission_code, proposal_id, agent_id, title, description, mission_type, priority, status)
@@ -296,8 +292,6 @@ class APIHandler(BaseHTTPRequestHandler):
         self.send_json({"missionId": mission_id, "code": mission_code, "status": "created"})
     
     def start_mission(self, mission_id):
-        from datetime import datetime
-        
         conn = get_db()
         cur = conn.cursor()
         cur.execute("""
@@ -309,8 +303,6 @@ class APIHandler(BaseHTTPRequestHandler):
         self.send_json({"id": mission_id, "status": "running"})
     
     def complete_mission(self, mission_id, data):
-        from datetime import datetime
-        
         status = data.get("status", "succeeded")
         result = data.get("result", {})
         error_message = data.get("errorMessage")
