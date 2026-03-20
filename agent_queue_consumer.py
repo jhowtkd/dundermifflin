@@ -5,7 +5,6 @@ Consome tarefas da fila e executa agentes via OpenClaw sessions_spawn
 """
 
 import os
-import sys
 import json
 import sqlite3
 import logging
