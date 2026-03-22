@@ -4,10 +4,6 @@ Dunder Mifflin Worker v2.0 - SQLite Local Edition
 Sem dependência do Convex, roda 100% local.
 """
 
-"""
-Dunder Mifflin Worker v2.0 - SQLite Local Edition
-Sem dependência do Convex, roda 100% local.
-"""
 
 import os
 import sys
@@ -21,9 +17,6 @@ from pathlib import Path
 DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
 KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
 
-# Config
-DB_PATH = Path(__file__).parent / "dunder_mifflin.db"
-KIMI_API_KEY = os.getenv("KIMI_API_KEY", "")
 
 def init_db():
     """Inicializa o banco de dados"""
@@ -94,17 +87,17 @@ def seed_agents():
             "priority": 7
         }
     ]
-    
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    
+
     for agent in agents:
         cur.execute("""
             INSERT OR IGNORE INTO agents (slug, name, role, description, capabilities, priority, is_active)
             VALUES (?, ?, ?, ?, ?, ?, 1)
-        """, (agent["slug"], agent["name"], agent["role"], 
+        """, (agent["slug"], agent["name"], agent["role"],
               agent["description"], agent["capabilities"], agent["priority"]))
-    
+
     conn.commit()
     conn.close()
     print(f"✅ {len(agents)} agentes criados")
@@ -130,7 +123,7 @@ def get_agent_by_slug(slug):
 def create_proposal(agent_id, title, description, mission_type="general", priority=5, parameters=None):
     """Cria uma proposta de missão"""
     code = f"PROP-{int(time.time() * 1000):x}"
-    
+
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("""
@@ -140,7 +133,7 @@ def create_proposal(agent_id, title, description, mission_type="general", priori
     proposal_id = cur.lastrowid
     conn.commit()
     conn.close()
-    
+
     print(f"✅ Proposta criada: {code} - {title}")
     return proposal_id
 
@@ -148,34 +141,34 @@ def approve_proposal(proposal_id, notes=""):
     """Aprova uma proposta e cria a missão"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    
+
     # Busca proposta
     cur.execute("SELECT * FROM proposals WHERE id = ?", (proposal_id,))
     row = cur.fetchone()
     if not row:
         conn.close()
         return None
-    
+
     proposal = dict(zip([col[0] for col in cur.description], row))
-    
+
     # Atualiza proposta
     cur.execute("""
         UPDATE proposals SET status = 'accepted', reviewed_at = ?, review_notes = ?
         WHERE id = ?
     """, (datetime.now().isoformat(), notes, proposal_id))
-    
+
     # Cria missão
     mission_code = f"MS-{int(time.time() * 1000):x}"
     cur.execute("""
         INSERT INTO missions (mission_code, proposal_id, agent_id, title, description, mission_type, priority, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'approved')
-    """, (mission_code, proposal_id, proposal["agent_id"], proposal["title"], 
+    """, (mission_code, proposal_id, proposal["agent_id"], proposal["title"],
           proposal["description"], proposal["mission_type"], proposal["priority"]))
-    
+
     mission_id = cur.lastrowid
     conn.commit()
     conn.close()
-    
+
     print(f"✅ Missão criada: {mission_code} - {proposal['title']}")
     return mission_id
 
@@ -195,18 +188,18 @@ def list_missions(status=None, limit=50):
     """Lista missões"""
     conn = _get_db_connection()
     cur = conn.cursor()
-    
+
     base_query = """
-        SELECT m.*, a.name as agent_name, a.slug as agent_slug 
-        FROM missions m 
-        JOIN agents a ON m.agent_id = a.id 
+        SELECT m.*, a.name as agent_name, a.slug as agent_slug
+        FROM missions m
+        JOIN agents a ON m.agent_id = a.id
     """
-    
+
     if status:
         cur.execute(base_query + "WHERE m.status = ? ORDER BY m.created_at DESC LIMIT ?", (status, limit))
     else:
         cur.execute(base_query + "ORDER BY m.created_at DESC LIMIT ?", (limit,))
-    
+
     result = _fetch_all_as_dict(cur)
     conn.close()
     return result
@@ -216,9 +209,9 @@ def get_mission(mission_id):
     conn = _get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT m.*, a.name as agent_name, a.slug as agent_slug 
-        FROM missions m 
-        JOIN agents a ON m.agent_id = a.id 
+        SELECT m.*, a.name as agent_name, a.slug as agent_slug
+        FROM missions m
+        JOIN agents a ON m.agent_id = a.id
         WHERE m.id = ?
     """, (mission_id,))
     row = cur.fetchone()
@@ -240,7 +233,7 @@ def complete_mission(mission_id, status="succeeded", result=None, error_message=
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("""
-        UPDATE missions 
+        UPDATE missions
         SET status = ?, completed_at = ?, result = ?, error_message = ?
         WHERE id = ?
     """, (status, datetime.now().isoformat(), json.dumps(result or {}), error_message, mission_id))
@@ -251,30 +244,30 @@ def get_dashboard_stats():
     """Retorna estatísticas do dashboard"""
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    
+
     stats = {}
-    
+
     cur.execute("SELECT COUNT(*) FROM agents WHERE is_active = 1")
     stats["active_agents"] = cur.fetchone()[0]
-    
+
     cur.execute("SELECT COUNT(*) FROM agents")
     stats["total_agents"] = cur.fetchone()[0]
-    
+
     cur.execute("SELECT COUNT(*) FROM missions WHERE status = 'running'")
     stats["running_missions"] = cur.fetchone()[0]
-    
+
     cur.execute("SELECT COUNT(*) FROM missions WHERE status = 'succeeded'")
     stats["completed_missions"] = cur.fetchone()[0]
-    
+
     cur.execute("SELECT COUNT(*) FROM missions WHERE status = 'failed'")
     stats["failed_missions"] = cur.fetchone()[0]
-    
+
     cur.execute("SELECT COUNT(*) FROM proposals WHERE status = 'pending'")
     stats["pending_proposals"] = cur.fetchone()[0]
-    
+
     cur.execute("SELECT COUNT(*) FROM events WHERE occurred_at > datetime('now', '-24 hours')")
     stats["events_24h"] = cur.fetchone()[0]
-    
+
     conn.close()
     return stats
 
@@ -506,7 +499,7 @@ def get_dashboard_stats_extended():
 
 if __name__ == "__main__":
     print("🚀 Dunder Mifflin Database Manager")
-    
+
     if len(sys.argv) < 2:
         print("""
 Uso: python db.py <comando> [args]
@@ -521,9 +514,9 @@ Comandos:
   stats             - Mostra estatísticas
         """)
         sys.exit(0)
-    
+
     cmd = sys.argv[1]
-    
+
     if cmd == "init":
         init_db()
     elif cmd == "seed":
