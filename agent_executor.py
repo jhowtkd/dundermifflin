@@ -7,8 +7,6 @@ Integração com Git/GitHub para trabalhar em projetos
 
 import sys
 import json
-import os
-import subprocess
 from pathlib import Path
 from datetime import datetime
 
@@ -179,32 +177,7 @@ Você está trabalhando no diretório: `{project_path}`
 """
     
     # Monta a mensagem completa
-    full_message = f"""{prompt}{project_context}
-
----
-
-## Tarefa Atual
-
-{task}
-
----
-
-Por favor, execute esta tarefa e retorne:
-1. O resultado completo do trabalho
-2. Arquivos criados/modificados (lista completa)
-3. Resumo das ações realizadas
-4. Comandos executados (se aplicável)
-
-**IMPORTANTE:** Seja específico sobre quais arquivos foram alterados.
-"""
-    
-    # Chama LLM via cliente unificado (Kimi API > Ollama local)
-    try:
-        from llm_client import generate_content
-        
-        full_prompt = f"""{prompt}
-
-{project_context}
+    full_prompt = f"""{prompt}{project_context}
 
 ## Tarefa a Executar
 
@@ -213,12 +186,16 @@ Por favor, execute esta tarefa e retorne:
 ---
 
 Execute esta tarefa e retorne APENAS o conteúdo solicitado."""
+    
+    # Chama LLM via cliente unificado (Kimi API > Ollama local)
+    try:
+        from llm_client import generate_content
         
         llm_output = generate_content(full_prompt, agent_slug)
         
         if not llm_output or len(llm_output) < 50:
             print("[AVISO] Resposta vazia ou muito curta")
-            llm_output = f"Erro: Resposta insuficiente do LLM"
+            llm_output = "Erro: Resposta insuficiente do LLM"
             
     except Exception as e:
         print(f"[ERRO] Falha ao chamar LLM: {e}")
